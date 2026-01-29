@@ -1,13 +1,18 @@
+// Load environment variables FIRST before any other imports
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
+// Core dependencies
 const express = require('express');
 const cors = require('cors');
+
+// Internal modules
 const connectDB = require('./config/db');
 const { initScheduledJobs } = require('./services/scheduler');
 const userRoutes = require('./routes/users');
 const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
 const { fetchAndSaveContests } = require('./services/clistService');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

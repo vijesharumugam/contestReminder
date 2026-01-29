@@ -45,4 +45,48 @@ router.get('/:clerkId', async (req, res) => {
     }
 });
 
+// Disconnect Telegram
+router.post('/disconnect-telegram', async (req, res) => {
+    const { clerkId } = req.body;
+    if (!clerkId) return res.status(400).json({ error: "Missing clerkId" });
+
+    try {
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Clear Telegram connection
+        user.telegramChatId = undefined;
+        user.preferences.telegram = false;
+        await user.save();
+
+        console.log(`[Users] Telegram disconnected for user ${user.email}`);
+        res.json(user);
+    } catch (error) {
+        console.error('[Users] Disconnect Telegram error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Manual Connect Telegram (for testing/debugging)
+router.post('/connect-telegram', async (req, res) => {
+    const { clerkId, telegramChatId } = req.body;
+    if (!clerkId || !telegramChatId) return res.status(400).json({ error: "Missing clerkId or telegramChatId" });
+
+    try {
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Set Telegram connection
+        user.telegramChatId = String(telegramChatId);
+        user.preferences.telegram = true;
+        await user.save();
+
+        console.log(`[Users] Telegram manually connected for user ${user.email}, chatId: ${telegramChatId}`);
+        res.json(user);
+    } catch (error) {
+        console.error('[Users] Connect Telegram error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

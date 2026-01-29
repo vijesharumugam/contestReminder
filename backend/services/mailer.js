@@ -1,27 +1,38 @@
 const nodemailer = require('nodemailer');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+
+// Validate email configuration
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_PASS = process.env.GMAIL_PASS;
+
+if (!GMAIL_USER || !GMAIL_PASS) {
+    console.warn('[Mailer] Warning: GMAIL_USER or GMAIL_PASS not configured. Email sending will fail.');
+}
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS
+        user: GMAIL_USER,
+        pass: GMAIL_PASS
     }
 });
 
 const sendEmail = async (to, subject, html) => {
+    if (!GMAIL_USER || !GMAIL_PASS) {
+        console.error('[Mailer] Cannot send email: credentials not configured');
+        return false;
+    }
+
     try {
         const info = await transporter.sendMail({
-            from: `"Contest Reminder" <${process.env.GMAIL_USER}>`,
+            from: `"Contest Reminder" <${GMAIL_USER}>`,
             to,
             subject,
             html
         });
-        console.log(`Email sent to ${to}: ${info.messageId}`);
+        console.log(`[Mailer] Email sent to ${to}: ${info.messageId}`);
         return true;
     } catch (error) {
-        console.error(`Error sending email to ${to}:`, error);
+        console.error(`[Mailer] Error sending email to ${to}:`, error.message);
         return false;
     }
 };

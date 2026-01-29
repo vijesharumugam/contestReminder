@@ -3,10 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const { sendEmail } = require('../services/mailer');
 const { sendTelegramMessage } = require('../services/telegramService');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "vijesharumugam26@gmail.com";
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
 
 // Middleware to check if the request comes from the admin
 // In a real app, you would verify the Clerk JWT token here.
