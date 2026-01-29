@@ -6,61 +6,65 @@ let bot = null;
 
 console.log(`[Telegram] Token: ${token ? 'configured' : 'NOT FOUND'}`);
 
+// Initialize Bot if token exists
 if (token) {
-    bot = new TelegramBot(token, { polling: true });
-    console.log('Telegram Bot Polling Started');
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    // Handle /start <token> - when user clicks the connect link
-    bot.onText(/\/start (.+)/, async (msg, match) => {
-        const chatId = msg.chat.id;
-        const connectToken = match[1]; // The captured token (should be clerkId)
-
-        console.log(`[Telegram] Received /start command with token: ${connectToken}, chatId: ${chatId}`);
-
-        if (!connectToken) {
-            console.log('[Telegram] No connect token provided');
-            return;
-        }
-
-        try {
-            // Find user by clerkId
-            let user = await User.findOne({ clerkId: connectToken });
-            console.log(`[Telegram] User lookup result:`, user ? `Found: ${user.email}` : 'Not found');
-
-            if (user) {
-                // Update user with Telegram chat ID
-                user.telegramChatId = String(chatId);
-                user.preferences.telegram = true;
-
-                // Save and wait for confirmation
-                const savedUser = await user.save();
-                console.log(`[Telegram] Save result - telegramChatId: ${savedUser.telegramChatId}, telegram pref: ${savedUser.preferences.telegram}`);
-
-                // Verify the save was successful
-                if (savedUser.telegramChatId === String(chatId)) {
-                    bot.sendMessage(chatId, "✅ Success! Your Telegram account has been linked to your Contest Reminder account.\n\nYou will now receive contest reminders here!");
-                    console.log(`[Telegram] Successfully linked for user ${user.email}, chatId: ${chatId}`);
-                } else {
-                    bot.sendMessage(chatId, "⚠️ There was an issue saving your connection. Please try again.");
-                    console.error(`[Telegram] Save verification failed for ${user.email}`);
-                }
-            } else {
-                bot.sendMessage(chatId, "❌ Could not identify user. Please try initiating the connection from the website again.\n\nMake sure you're logged in on the website first.");
-                console.log(`[Telegram] User not found for clerkId: ${connectToken}`);
-            }
-        } catch (err) {
-            console.error("[Telegram] Bot Error:", err);
-            bot.sendMessage(chatId, "❌ An error occurred while linking. Please try again later.");
-        }
-    });
-
-    // Handle plain /start (without token)
-    bot.onText(/^\/start$/, (msg) => {
-        bot.sendMessage(msg.chat.id, "👋 Hello! Please use the 'Connect Telegram' button on the website to link your account.\n\n🔗 Visit the Settings page on the Contest Reminder website to get started.");
-    });
+    if (isProduction) {
+        // Webhook mode for Vercel
+        bot = new TelegramBot(token, { polling: false });
+        console.log('[Telegram] Initialized in Webhook mode');
+    } else {
+        // Polling mode for Local Development
+        bot = new TelegramBot(token, { polling: true });
+        console.log('[Telegram] Initialized in Polling mode');
+        setupListeners();
+    }
 } else {
     console.log('[Telegram] Warning: TELEGRAM_BOT_TOKEN not set, bot not initialized');
 }
+
+function setupListeners() {
+    if (!bot) return;
+
+    bot.onText(/\/start (.+)/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        const connectToken = match[1];
+        handleStartCommand(chatId, connectToken);
+    });
+
+    bot.onText(/^\/start$/, (msg) => {
+        bot.sendMessage(msg.chat.id, "👋 Hello! Please use the 'Connect Telegram' button on the website to link your account.\n\n🔗 Visit the Settings page on the Contest Reminder website to get started.");
+    });
+}
+
+async function handleStartCommand(chatId, connectToken) {
+    if (!connectToken) return;
+    console.log(`[Telegram] Processing start with token: ${connectToken}`);
+    try {
+        let user = await User.findOne({ clerkId: connectToken });
+        if (user) {
+            user.telegramChatId = String(chatId);
+            user.preferences.telegram = true;
+            const savedUser = await user.save();
+            if (savedUser.telegramChatId === String(chatId)) {
+                bot.sendMessage(chatId, "✅ Success! Your Telegram account has been linked to your Contest Reminder account.");
+            } else {
+                bot.sendMessage(chatId, "⚠️ There was an issue saving your connection. Please try again.");
+            }
+        } else {
+            bot.sendMessage(chatId, "❌ Could not identify user. Make sure you're logged in on the website first.");
+        }
+    } catch (err) {
+        console.error("[Telegram] Bot Error:", err);
+        bot.sendMessage(chatId, "❌ An error occurred while linking. Please try again later.");
+    }
+}
+
+const handleWebhookUpdate = (update) => {
+    if (!bot) return;
+    bot.processUpdate(update);
+};
 
 const sendTelegramMessage = async (chatId, text) => {
     if (!bot || !chatId) return;
@@ -71,4 +75,4 @@ const sendTelegramMessage = async (chatId, text) => {
     }
 };
 
-module.exports = { sendTelegramMessage, bot };
+module.exports = { sendTelegramMessage, bot, handleWebhookUpdate };

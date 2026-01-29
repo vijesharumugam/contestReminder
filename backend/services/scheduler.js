@@ -107,4 +107,8 @@ const sendUpcomingReminders = async () => {
     }
 };
 
-module.exports = { initScheduledJobs };
+module.exports = {
+    initScheduledJobs,
+    sendDailyDigest,
+    sendUpcomingReminders
+};

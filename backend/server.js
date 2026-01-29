@@ -8,11 +8,12 @@ const cors = require('cors');
 
 // Internal modules
 const connectDB = require('./config/db');
-const { initScheduledJobs } = require('./services/scheduler');
+const { initScheduledJobs, sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
 const userRoutes = require('./routes/users');
 const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
 const { fetchAndSaveContests } = require('./services/clistService');
+const { handleWebhookUpdate } = require('./services/telegramService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,14 +34,35 @@ app.get('/', (req, res) => {
     res.send('Contest Reminder API Running');
 });
 
-// Manual trigger for testing (Optional)
-app.get('/api/trigger-fetch', async (req, res) => {
+// Vercel Cron Routes (Protected by CRON_SECRET if desired, currently open for simplicity or secret query param recommended)
+app.get('/api/cron/fetch', async (req, res) => {
     await fetchAndSaveContests();
-    res.send('Fetch triggered');
+    res.json({ success: true, message: 'Contests fetched' });
 });
 
-// Start Server & Scheduler
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    initScheduledJobs();
+app.get('/api/cron/digest', async (req, res) => {
+    await sendDailyDigest();
+    res.json({ success: true, message: 'Daily digest sent' });
 });
+
+app.get('/api/cron/reminders', async (req, res) => {
+    await sendUpcomingReminders();
+    res.json({ success: true, message: 'Reminders check complete' });
+});
+
+// Telegram Webhook Route
+app.post('/api/telegram/webhook', (req, res) => {
+    handleWebhookUpdate(req.body);
+    res.sendStatus(200);
+});
+
+// Start Server (Only for local dev, Vercel handles this via export)
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        initScheduledJobs(); // Only run node-cron locally
+    });
+}
+
+// Export app for Vercel
+module.exports = app;
