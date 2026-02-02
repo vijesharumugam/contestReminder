@@ -1,32 +1,12 @@
-const cron = require('node-cron');
+// Refactored for Vercel Serverless - no node-cron needed
+// These functions will be called by HTTP endpoints triggered by Vercel Cron
+
 const Contest = require('../models/Contest');
 const User = require('../models/User');
 const NotificationLog = require('../models/NotificationLog');
 const { fetchAndSaveContests } = require('./clistService');
 const { sendEmail } = require('./mailer');
 const { sendTelegramMessage } = require('./telegramService');
-
-const initScheduledJobs = () => {
-    console.log("Initializing Scheduler...");
-
-    // 1. Fetch Contests: Every 6 hours
-    cron.schedule('0 */6 * * *', async () => {
-        console.log("Cron: Fetching Contests...");
-        await fetchAndSaveContests();
-    });
-
-    // 2. Daily Digest: 08:00 AM
-    cron.schedule('0 8 * * *', async () => {
-        console.log("Cron: Sending Daily Digest...");
-        await sendDailyDigest();
-    });
-
-    // 3. 30-min Reminder: Every 5 minutes
-    cron.schedule('*/5 * * * *', async () => {
-        console.log("Cron: Checking 30-min Reminders...");
-        await sendUpcomingReminders();
-    });
-};
 
 const sendDailyDigest = async () => {
     const users = await User.find({ 'preferences.email': true });
@@ -41,8 +21,6 @@ const sendDailyDigest = async () => {
 
     if (!upcomingContests.length) return;
 
-    // Simple Digest Logic: Send to all subscribed users
-    // In production, might want batching or queue
     for (const user of users) {
         // Basic HTML Table
         const listHtml = upcomingContests.map(c =>
@@ -77,7 +55,6 @@ const sendUpcomingReminders = async () => {
 
             if (!wantsEmail && !wantsTelegram) continue;
 
-            // Check if already sent
             const alreadySent = await NotificationLog.findOne({
                 userId: user._id,
                 contestId: contest._id,
@@ -108,7 +85,7 @@ const sendUpcomingReminders = async () => {
 };
 
 module.exports = {
-    initScheduledJobs,
+    fetchAndSaveContests,
     sendDailyDigest,
     sendUpcomingReminders
 };

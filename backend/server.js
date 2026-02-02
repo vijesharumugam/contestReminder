@@ -8,12 +8,11 @@ const cors = require('cors');
 
 // Internal modules
 const connectDB = require('./config/db');
-const { initScheduledJobs, sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
 const userRoutes = require('./routes/users');
 const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
+const cronRoutes = require('./routes/cron');
 const { fetchAndSaveContests } = require('./services/clistService');
-const { handleWebhookUpdate } = require('./services/telegramService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,40 +28,25 @@ connectDB();
 app.use('/api/users', userRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/cron', cronRoutes);
 
 app.get('/', (req, res) => {
     res.send('Contest Reminder API Running');
 });
 
-// Vercel Cron Routes (Protected by CRON_SECRET if desired, currently open for simplicity or secret query param recommended)
-app.get('/api/cron/fetch', async (req, res) => {
+// Manual trigger for testing (Optional)
+app.get('/api/trigger-fetch', async (req, res) => {
     await fetchAndSaveContests();
-    res.json({ success: true, message: 'Contests fetched' });
+    res.send('Fetch triggered');
 });
 
-app.get('/api/cron/digest', async (req, res) => {
-    await sendDailyDigest();
-    res.json({ success: true, message: 'Daily digest sent' });
-});
-
-app.get('/api/cron/reminders', async (req, res) => {
-    await sendUpcomingReminders();
-    res.json({ success: true, message: 'Reminders check complete' });
-});
-
-// Telegram Webhook Route
-app.post('/api/telegram/webhook', (req, res) => {
-    handleWebhookUpdate(req.body);
-    res.sendStatus(200);
-});
-
-// Start Server (Only for local dev, Vercel handles this via export)
-if (process.env.NODE_ENV !== 'production') {
+// Start Server (only when running locally, not on Vercel)
+if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
-        initScheduledJobs(); // Only run node-cron locally
+        console.log('Note: Cron jobs are handled by Vercel Cron in production');
     });
 }
 
-// Export app for Vercel
+// Export for Vercel Serverless
 module.exports = app;
