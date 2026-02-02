@@ -6,6 +6,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
+const axios = require('axios');
 
 // Internal modules
 const connectDB = require('./config/db');
@@ -61,6 +62,22 @@ const initScheduledJobs = () => {
         console.log("Cron: Checking 30-min Reminders...");
         await sendUpcomingReminders();
     });
+
+    // 4. Keep-Alive: Ping self every 10 minutes (prevents Render free tier sleep)
+    if (process.env.NODE_ENV === 'production') {
+        const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://contestreminder-krrf.onrender.com';
+
+        cron.schedule('*/10 * * * *', async () => {
+            try {
+                await axios.get(SELF_URL);
+                console.log('[Keep-Alive] Pinged self to prevent sleep');
+            } catch (error) {
+                console.error('[Keep-Alive] Ping failed:', error.message);
+            }
+        });
+
+        console.log(`[Keep-Alive] Enabled - will ping ${SELF_URL} every 10 minutes`);
+    }
 };
 
 // Start Server & Scheduler

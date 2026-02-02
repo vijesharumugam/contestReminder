@@ -119,7 +119,18 @@ const fetchAndSaveContests = async () => {
 
         for (const c of contests) {
             const resourceName = extractResourceName(c.resource) || c.host || 'Unknown';
-            const platform = normalizePlatform(resourceName);
+            let platform = normalizePlatform(resourceName);
+
+            // Fallback: Detect platform from contest URL if resource name failed
+            if (!resourceName || resourceName === 'Unknown' || platform === 'Unknown') {
+                if (c.href && c.href.includes('codeforces.com')) {
+                    platform = 'Codeforces';
+                } else if (c.href && c.href.includes('leetcode.com')) {
+                    platform = 'LeetCode';
+                } else if (c.href && c.href.includes('codechef.com')) {
+                    platform = 'CodeChef';
+                }
+            }
 
             const contestData = {
                 externalId: c.id,
