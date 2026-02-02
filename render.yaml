@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: contest-reminder-backend
+    env: node
+    root: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      # User needs to add these secrets in the Render Dashboard:
+      # - MONGODB_URI
+      # - CLIST_USERNAME
+      # - CLIST_API_KEY
+      # - GMAIL_USER
+      # - GMAIL_PASS
+      # - TELEGRAM_BOT_TOKEN
+      # - NEXT_PUBLIC_ADMIN_EMAIL

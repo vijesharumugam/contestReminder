@@ -1,10 +1,6 @@
-// Refactored for Vercel Serverless - no node-cron needed
-// These functions will be called by HTTP endpoints triggered by Vercel Cron
-
 const Contest = require('../models/Contest');
 const User = require('../models/User');
 const NotificationLog = require('../models/NotificationLog');
-const { fetchAndSaveContests } = require('./clistService');
 const { sendEmail } = require('./mailer');
 const { sendTelegramMessage } = require('./telegramService');
 
@@ -85,7 +81,6 @@ const sendUpcomingReminders = async () => {
 };
 
 module.exports = {
-    fetchAndSaveContests,
     sendDailyDigest,
     sendUpcomingReminders
 };

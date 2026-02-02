@@ -100,24 +100,24 @@ npm run dev
 
 Access the app at: `http://localhost:3000`
 
-## ☁️ Vercel Deployment
+## ☁️ **Deployment**
 
-This project is **fully configured for Vercel** with serverless functions and Vercel Cron!
+This project uses a **hybrid deployment strategy**:
+- **Backend**: Render.com (supports cron jobs on free tier)
+- **Frontend**: Vercel (best Next.js hosting)
 
 ### Quick Deploy
 
-1. **Backend**: Deploy to Vercel with root directory `backend`
+1. **Backend**: Deploy to Render with root directory `backend`
 2. **Frontend**: Deploy to Vercel with root directory `frontend`
 
-📚 **Detailed Guides:**
-- [**VERCEL_CHECKLIST.md**](./VERCEL_CHECKLIST.md) - Quick reference checklist
-- [**VERCEL_DEPLOYMENT.md**](./VERCEL_DEPLOYMENT.md) - Complete step-by-step guide
+📚 **Complete Guide**: See [**DEPLOYMENT_GUIDE.md**](./DEPLOYMENT_GUIDE.md) for step-by-step instructions
 
-### Key Changes for Vercel
-- ✅ Backend converted to serverless functions
-- ✅ `node-cron` replaced with Vercel Cron
-- ✅ Cron endpoints secured with `CRON_SECRET`
-- ✅ Works on both free and pro tiers (with external cron service on free tier)
+### Why This Approach?
+- ✅ Render's free tier supports background cron jobs
+- ✅ Vercel's free tier is perfect for Next.js
+- ✅ Both services have generous free tiers
+- ✅ No external cron service needed
 
 
 ## 📱 Telegram Integration
@@ -157,7 +157,7 @@ This project is **fully configured for Vercel** with serverless functions and Ve
 **Backend:**
 - Node.js + Express.js
 - MongoDB + Mongoose
-- Vercel Cron (scheduling)
+- node-cron (scheduling)
 - Nodemailer (email)
 - node-telegram-bot-api
 
