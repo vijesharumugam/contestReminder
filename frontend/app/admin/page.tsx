@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
 import axios from "axios";
 import Link from "next/link";
-import { Users, Mail, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle, ShieldAlert, X } from "lucide-react";
+import { Users, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle, ShieldAlert, X } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 
 // Toast notification types
@@ -117,24 +117,7 @@ export default function AdminPage() {
         }
     }, [isLoaded, isAdmin, fetchUsers]);
 
-    const testEmail = async (userEmail: string) => {
-        const statusKey = `email-${userEmail}`;
-        setTestLoading(statusKey);
-        try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            await axios.post(`${backendUrl}/api/admin/test-email`,
-                { email: userEmail },
-                { headers: { 'x-admin-email': ADMIN_EMAIL } }
-            );
-            addToast('success', 'Email Sent! ✉️', `Test email successfully sent to ${userEmail}`);
-            updateTestStatus(statusKey, 'success', 'Sent!');
-        } catch {
-            addToast('error', 'Email Failed', `Could not send test email to ${userEmail}`);
-            updateTestStatus(statusKey, 'error', 'Failed');
-        } finally {
-            setTestLoading(null);
-        }
-    };
+
 
     const testTelegram = async (chatId: string, userId: string) => {
         if (!chatId) return;
@@ -156,27 +139,7 @@ export default function AdminPage() {
         }
     };
 
-    const checkEmailConfig = async () => {
-        try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            const res = await axios.get(`${backendUrl}/api/admin/email-config`, {
-                headers: { 'x-admin-email': ADMIN_EMAIL }
-            });
-            console.log('Email Config:', res.data);
 
-            const { config, transporterVerified, message } = res.data;
-            const details = `Provider: ${config.provider}\nEnvironment: ${config.nodeEnv}\nGmail User: ${config.gmailUser}\nGmail Pass: ${config.gmailPass}\nTransporter: ${transporterVerified ? '✅ Verified' : '❌ Failed'}`;
-
-            if (transporterVerified) {
-                addToast('success', 'Email Config OK ✅', details);
-            } else {
-                addToast('error', 'Email Config Issue ⚠️', details);
-            }
-        } catch (err) {
-            console.error('Email config check failed:', err);
-            addToast('error', 'Config Check Failed', 'Could not retrieve email configuration');
-        }
-    };
 
     if (!isLoaded) {
         return (
@@ -284,19 +247,9 @@ export default function AdminPage() {
                         </h1>
                         <p className="text-slate-400">Monitoring {users.length} active users in the system</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl text-green-400 text-sm font-medium">
-                            <CheckCircle className="w-4 h-4" />
-                            Verified Admin: {user?.primaryEmailAddress?.emailAddress}
-                        </div>
-                        <button
-                            onClick={checkEmailConfig}
-                            className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition-all"
-                            title="Check email configuration"
-                        >
-                            <Mail className="w-4 h-4" />
-                            Check Email Config
-                        </button>
+                    <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl text-green-400 text-sm font-medium">
+                        <CheckCircle className="w-4 h-4" />
+                        Verified Admin: {user?.primaryEmailAddress?.emailAddress}
                     </div>
                 </div>
 
@@ -338,9 +291,6 @@ export default function AdminPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex gap-2">
-                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.preferences.email ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-slate-800 text-slate-500'}`}>
-                                                        Email
-                                                    </span>
                                                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800 text-slate-500'}`}>
                                                         Telegram
                                                     </span>
@@ -348,34 +298,6 @@ export default function AdminPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex gap-3 items-center">
-                                                    {/* Email Test Button with Status */}
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => testEmail(u.email)}
-                                                            disabled={!!testLoading}
-                                                            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-blue-600 rounded-xl transition-all border border-slate-700 disabled:opacity-50 text-xs font-bold"
-                                                        >
-                                                            {testLoading === `email-${u.email}` ? <Spinner size="sm" /> : <Mail className="w-4 h-4" />}
-                                                            Test Gmail
-                                                        </button>
-                                                        {/* Inline Email Status Indicator */}
-                                                        {testStatuses[`email-${u.email}`] && (
-                                                            <span className={`
-                                                                animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
-                                                                ${testStatuses[`email-${u.email}`].type === 'success'
-                                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                                }
-                                                            `}>
-                                                                {testStatuses[`email-${u.email}`].type === 'success'
-                                                                    ? <CheckCircle className="w-3 h-3" />
-                                                                    : <AlertCircle className="w-3 h-3" />
-                                                                }
-                                                                {testStatuses[`email-${u.email}`].message}
-                                                            </span>
-                                                        )}
-                                                    </div>
-
                                                     {/* Telegram Test Button with Status */}
                                                     <div className="flex items-center gap-2">
                                                         <button

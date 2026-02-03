@@ -1,12 +1,19 @@
 const Contest = require('../models/Contest');
 const User = require('../models/User');
 const NotificationLog = require('../models/NotificationLog');
-const { sendEmail } = require('./mailer');
 const { sendTelegramMessage } = require('./telegramService');
 
 const sendDailyDigest = async () => {
-    const users = await User.find({ 'preferences.email': true });
-    if (!users.length) return;
+    // Only send to users with Telegram enabled
+    const users = await User.find({
+        'preferences.telegram': true,
+        telegramChatId: { $exists: true, $ne: null }
+    });
+
+    if (!users.length) {
+        console.log('[Scheduler] No users with Telegram enabled for daily digest');
+        return;
+    }
 
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -15,17 +22,27 @@ const sendDailyDigest = async () => {
         startTime: { $gte: now, $lt: next24h }
     }).sort({ startTime: 1 });
 
-    if (!upcomingContests.length) return;
+    if (!upcomingContests.length) {
+        console.log('[Scheduler] No upcoming contests for daily digest');
+        return;
+    }
+
+    console.log(`[Scheduler] Sending daily digest to ${users.length} users via Telegram`);
 
     for (const user of users) {
-        // Basic HTML Table
-        const listHtml = upcomingContests.map(c =>
-            `<li><b>${c.name}</b> (${c.platform}) - ${new Date(c.startTime).toUTCString()} <a href="${c.url}">Link</a></li>`
-        ).join('');
+        try {
+            // Format contests for Telegram
+            const contestList = upcomingContests.map((c, index) =>
+                `${index + 1}. *${c.name}* (${c.platform})\n   📅 ${new Date(c.startTime).toUTCString()}\n   🔗 ${c.url}`
+            ).join('\n\n');
 
-        const html = `<h3>Upcoming Contests Today</h3><ul>${listHtml}</ul>`;
+            const message = `🔔 *Upcoming Contests Today*\n\n${contestList}`;
 
-        await sendEmail(user.email, "Daily Contest Digest", html);
+            await sendTelegramMessage(user.telegramChatId, message);
+            console.log(`[Scheduler] Daily digest sent to ${user.email} via Telegram`);
+        } catch (error) {
+            console.error(`[Scheduler] Failed to send daily digest to ${user.email}:`, error.message);
+        }
     }
 };
 
@@ -41,41 +58,46 @@ const sendUpcomingReminders = async () => {
 
     if (!contests.length) return;
 
-    const users = await User.find({});
+    // Only get users with Telegram enabled
+    const users = await User.find({
+        'preferences.telegram': true,
+        telegramChatId: { $exists: true, $ne: null }
+    });
+
+    if (!users.length) {
+        console.log('[Scheduler] No users with Telegram enabled for reminders');
+        return;
+    }
+
+    console.log(`[Scheduler] Checking 30-min reminders for ${contests.length} contests`);
 
     for (const contest of contests) {
         for (const user of users) {
-            // Check preferences
-            const wantsEmail = user.preferences.email;
-            const wantsTelegram = user.preferences.telegram && user.telegramChatId;
+            try {
+                // Check if already sent
+                const alreadySent = await NotificationLog.findOne({
+                    userId: user._id,
+                    contestId: contest._id,
+                    type: '30m'
+                });
 
-            if (!wantsEmail && !wantsTelegram) continue;
+                if (alreadySent) continue;
 
-            const alreadySent = await NotificationLog.findOne({
-                userId: user._id,
-                contestId: contest._id,
-                type: '30m'
-            });
+                // Send Telegram notification
+                const message = `⏰ *Reminder*\n\n${contest.name} on *${contest.platform}* starts in 30 minutes!\n\n🔗 ${contest.url}`;
 
-            if (alreadySent) continue;
-
-            // Send Notifications
-            const message = `Reminder: ${contest.name} on ${contest.platform} starts in 30 minutes! ${contest.url}`;
-
-            if (wantsTelegram) {
                 await sendTelegramMessage(user.telegramChatId, message);
-            }
+                console.log(`[Scheduler] 30-min reminder sent to ${user.email} for ${contest.name}`);
 
-            if (wantsEmail) {
-                await sendEmail(user.email, `Reminder: ${contest.name}`, `<p>${message}</p>`);
+                // Log it
+                await NotificationLog.create({
+                    userId: user._id,
+                    contestId: contest._id,
+                    type: '30m'
+                });
+            } catch (error) {
+                console.error(`[Scheduler] Failed to send reminder to ${user.email}:`, error.message);
             }
-
-            // Log it
-            await NotificationLog.create({
-                userId: user._id,
-                contestId: contest._id,
-                type: '30m'
-            });
         }
     }
 };
