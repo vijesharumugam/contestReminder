@@ -15,7 +15,6 @@ const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
 const { fetchAndSaveContests } = require('./services/clistService');
 const { sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
-const { verifyEmailConfig } = require('./services/mailer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,25 +41,25 @@ app.get('/api/trigger-fetch', async (req, res) => {
     res.send('Fetch triggered');
 });
 
-// Initialize Cron Jobs (Render supports this!)
+// Initialize Cron Jobs
 const initScheduledJobs = () => {
-    console.log("Initializing Scheduler...");
+    console.log('[Scheduler] Initializing scheduled jobs...');
 
     // 1. Fetch Contests: Every 6 hours
     cron.schedule('0 */6 * * *', async () => {
-        console.log("Cron: Fetching Contests...");
+        console.log('[Cron] Fetching contests from CLIST API...');
         await fetchAndSaveContests();
     });
 
     // 2. Daily Digest: 08:00 AM
     cron.schedule('0 8 * * *', async () => {
-        console.log("Cron: Sending Daily Digest...");
+        console.log('[Cron] Sending daily digest via Telegram...');
         await sendDailyDigest();
     });
 
     // 3. 30-min Reminder: Every 5 minutes
     cron.schedule('*/5 * * * *', async () => {
-        console.log("Cron: Checking 30-min Reminders...");
+        console.log('[Cron] Checking for 30-minute reminders...');
         await sendUpcomingReminders();
     });
 
@@ -71,23 +70,27 @@ const initScheduledJobs = () => {
         cron.schedule('*/10 * * * *', async () => {
             try {
                 await axios.get(SELF_URL);
-                console.log('[Keep-Alive] Pinged self to prevent sleep');
+                console.log('[Keep-Alive] ✅ Pinged self successfully');
             } catch (error) {
-                console.error('[Keep-Alive] Ping failed:', error.message);
+                console.error('[Keep-Alive] ❌ Ping failed:', error.message);
             }
         });
 
-        console.log(`[Keep-Alive] Enabled - will ping ${SELF_URL} every 10 minutes`);
+        console.log(`[Keep-Alive] Enabled - pinging ${SELF_URL} every 10 minutes`);
     }
+
+    console.log('[Scheduler] ✅ All jobs initialized successfully');
 };
 
 // Start Server & Scheduler
 app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-
-    // Verify email configuration
-    await verifyEmailConfig();
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`🚀 Contest Reminder API`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📡 Server: http://localhost:${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📱 Notifications: Telegram Only`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
     // Initialize scheduled jobs
     initScheduledJobs();
