@@ -15,6 +15,7 @@ const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
 const { fetchAndSaveContests } = require('./services/clistService');
 const { sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
+const { verifyEmailConfig } = require('./services/mailer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -81,8 +82,14 @@ const initScheduledJobs = () => {
 };
 
 // Start Server & Scheduler
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+    // Verify email configuration
+    await verifyEmailConfig();
+
+    // Initialize scheduled jobs
     initScheduledJobs();
 });
 
