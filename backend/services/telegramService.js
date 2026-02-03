@@ -1,5 +1,8 @@
+
 const TelegramBot = require('node-telegram-bot-api');
 const User = require('../models/User');
+const Contest = require('../models/Contest');
+
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 let bot = null;
@@ -38,8 +41,50 @@ if (token) {
 
                 // Verify the save was successful
                 if (savedUser.telegramChatId === String(chatId)) {
-                    bot.sendMessage(chatId, "✅ Success! Your Telegram account has been linked to your Contest Reminder account.\n\nYou will now receive contest reminders here!");
+                    await bot.sendMessage(chatId, "✅ Success! Your Telegram account has been linked to your Contest Reminder account.\n\nYou will now receive contest reminders here!");
                     console.log(`[Telegram] Successfully linked for user ${user.email}, chatId: ${chatId}`);
+
+                    // ---------------------------------------------------------
+                    // NEW: Send 3-Day Contest Summary immediately
+                    // ---------------------------------------------------------
+                    try {
+                        const now = new Date();
+                        const next3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+                        const contests = await Contest.find({
+                            startTime: { $gte: now, $lt: next3Days }
+                        }).sort({ startTime: 1 }).lean();
+
+                        if (contests.length > 0) {
+                            // Helper for formatting
+                            const formatDateTime = (date) => {
+                                const options = {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    timeZoneName: 'short'
+                                };
+                                return new Date(date).toLocaleString('en-US', options);
+                            };
+
+                            const contestList = contests.map((c, i) =>
+                                `${i + 1}. *${c.name}*\n   📍 ${c.platform}\n   ⏰ ${formatDateTime(c.startTime)}\n   🔗 [Link](${c.url})`
+                            ).join('\n\n');
+
+                            const summaryMsg = `🌟 *Welcome! Here are the contests coming up in the next 3 days:*\n━━━━━━━━━━━━━━━━━━━━\n\n${contestList}\n\n━━━━━━━━━━━━━━━━━━━━\n💡 You'll get daily digests at 8:00 AM!`;
+
+                            await bot.sendMessage(chatId, summaryMsg, { parse_mode: 'Markdown' });
+                            console.log(`[Telegram] Sent welcome summary to ${user.email}`);
+                        } else {
+                            await bot.sendMessage(chatId, "📅 No contests found for the next 3 days. We'll verify daily and notify you when one appears!");
+                        }
+                    } catch (summaryError) {
+                        console.error(`[Telegram] Failed to send welcome summary:`, summaryError.message);
+                    }
+                    // ---------------------------------------------------------
+
                 } else {
                     bot.sendMessage(chatId, "⚠️ There was an issue saving your connection. Please try again.");
                     console.error(`[Telegram] Save verification failed for ${user.email}`);
