@@ -45,11 +45,12 @@ const Navbar = () => {
                     ? "glass shadow-2xl border-white/10"
                     : "bg-transparent border-transparent"
             )}>
-                <Link href="/" className="flex items-center gap-2 group">
+                <Link href="/" className="flex items-center gap-3 group">
                     <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative bg-slate-900 p-2 rounded-lg group-hover:scale-110 transition-transform border border-white/10">
-                            <Trophy className="w-5 h-5 text-blue-500" />
+                        <div className="relative bg-slate-900 p-1.5 rounded-lg group-hover:scale-110 transition-transform border border-white/10">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/icon.png" alt="Logo" className="w-6 h-6 object-contain" />
                         </div>
                     </div>
                     <span className="font-outfit font-bold text-xl tracking-tight hidden sm:block">

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import axios from "axios";
-import { Mail, Send, CheckCircle2, RefreshCw, AlertCircle, Unlink } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 
@@ -95,37 +95,7 @@ export default function SettingsPage() {
                 <p className="text-slate-400">Choose how you want to be notified about upcoming contests.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Email Notification */}
-                <div className="glass p-6 rounded-3xl space-y-6 relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-500/20 p-3 rounded-2xl">
-                                <Mail className="w-6 h-6 text-blue-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-lg">Email Alerts</h3>
-                                <p className="text-xs text-slate-400">Daily digests & reminders</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => togglePreference('email')}
-                            disabled={updating}
-                            className={cn(
-                                "w-14 h-8 rounded-full transition-all relative p-1",
-                                userData?.preferences?.email ? "bg-blue-600" : "bg-slate-700"
-                            )}
-                        >
-                            <div className={cn(
-                                "w-6 h-6 bg-white rounded-full transition-all transform shadow-md",
-                                userData?.preferences?.email ? "translate-x-6" : "translate-x-0"
-                            )} />
-                        </button>
-                    </div>
-                    <div className="bg-slate-800/50 p-4 rounded-2xl text-sm text-slate-400 border border-slate-700/50">
-                        Sent to: <span className="text-white font-medium">{user?.primaryEmailAddress?.emailAddress}</span>
-                    </div>
-                </div>
+            <div className="max-w-2xl mx-auto">
 
                 {/* Telegram Notification */}
                 <div className="glass p-6 rounded-3xl space-y-6 relative overflow-hidden">
@@ -207,7 +177,7 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                         <h4 className="font-bold">How it works</h4>
                         <ul className="text-sm text-slate-400 space-y-2 list-disc pl-4">
-                            <li><b>Daily Digest:</b> A summary of all contests starting in the next 24 hours (8 AM GMT).</li>
+
                             <li><b>30m Reminders:</b> A notification sent exactly 30 minutes before a contest starts.</li>
                             <li>Make sure to <b>/start</b> the Telegram bot after clicking connect.</li>
                         </ul>
