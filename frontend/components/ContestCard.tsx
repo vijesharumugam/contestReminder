@@ -1,4 +1,4 @@
-import { ExternalLink, Clock, Calendar, ArrowRight, Share2 } from "lucide-react";
+import { ExternalLink, Clock, Calendar, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 
@@ -61,9 +61,7 @@ const ContestCard = ({ contest }: { contest: Contest }) => {
                     {contest.platform}
                 </div>
                 <div className="flex gap-2">
-                    <button className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white transition-colors">
-                        <Share2 className="w-4 h-4" />
-                    </button>
+
                     <a
                         href={contest.url}
                         target="_blank"
