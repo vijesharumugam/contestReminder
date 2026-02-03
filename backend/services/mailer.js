@@ -46,15 +46,29 @@ const createGmailTransporter = () => {
         console.warn('[Mailer] WARNING: Gmail SMTP may not work reliably in production. Consider using SendGrid, Resend, or Mailgun.');
     }
 
+    console.log(`[Mailer] Creating Gmail transporter for: ${GMAIL_USER}`);
+
     return nodemailer.createTransport({
         service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // Use STARTTLS
         auth: {
             user: GMAIL_USER,
             pass: GMAIL_PASS
         },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000
+        // Production-friendly settings
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 30000,   // 30 seconds
+        socketTimeout: 60000,      // 60 seconds
+        // TLS options for production environments
+        tls: {
+            rejectUnauthorized: false, // Allow self-signed certificates
+            ciphers: 'SSLv3'
+        },
+        // Enable debug logging in production
+        debug: NODE_ENV === 'production',
+        logger: NODE_ENV === 'production'
     });
 };
 
@@ -195,10 +209,12 @@ const sendEmail = async (to, subject, html) => {
 
     try {
         console.log(`[Mailer] Sending email to ${to} via ${EMAIL_PROVIDER}...`);
+        console.log(`[Mailer] From: ${fromName} <${fromEmail}>`);
+        console.log(`[Mailer] Subject: ${subject}`);
 
         // Create a timeout promise
         const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Email sending timeout after 45 seconds')), 45000);
+            setTimeout(() => reject(new Error('Email sending timeout after 60 seconds')), 60000);
         });
 
         // Race between sending email and timeout
@@ -214,17 +230,32 @@ const sendEmail = async (to, subject, html) => {
 
         console.log(`[Mailer] ✅ Email sent successfully to ${to} via ${EMAIL_PROVIDER}`);
         console.log(`[Mailer] Message ID: ${info.messageId}`);
+        console.log(`[Mailer] Response: ${info.response}`);
         return true;
     } catch (error) {
         console.error(`[Mailer] ❌ Error sending email to ${to} via ${EMAIL_PROVIDER}:`, error.message);
+        console.error(`[Mailer] Error code: ${error.code}`);
+        console.error(`[Mailer] Error command: ${error.command}`);
 
         // Provide helpful error messages
         if (error.message.includes('timeout')) {
-            console.error('[Mailer] Email service timed out. This may indicate network issues or incorrect credentials.');
+            console.error('[Mailer] Email service timed out. This may indicate:');
+            console.error('  - Network issues or firewall blocking SMTP ports');
+            console.error('  - Gmail blocking datacenter IPs (common on Render/Vercel)');
+            console.error('  - Incorrect SMTP server settings');
+            console.error('  → SOLUTION: Switch to SendGrid, Resend, or Mailgun for production');
         } else if (error.code === 'EAUTH') {
-            console.error('[Mailer] Authentication failed. Please check your credentials.');
-        } else if (error.code === 'ECONNECTION') {
-            console.error('[Mailer] Connection failed. Please check your network and SMTP settings.');
+            console.error('[Mailer] Authentication failed. Please check:');
+            console.error('  - GMAIL_USER is correct');
+            console.error('  - GMAIL_PASS is a valid App Password (not regular password)');
+            console.error('  - 2FA is enabled on your Google account');
+        } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+            console.error('[Mailer] Connection failed. This usually means:');
+            console.error('  - Gmail SMTP is blocked by your hosting provider');
+            console.error('  - Port 587 or 465 is not accessible');
+            console.error('  → SOLUTION: Use SendGrid, Resend, or Mailgun instead');
+        } else if (error.code === 'ESOCKET') {
+            console.error('[Mailer] Socket error. Network connectivity issue.');
         }
 
         throw error;

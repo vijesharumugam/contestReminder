@@ -29,14 +29,69 @@ router.get('/users', isAdmin, async (req, res) => {
     }
 });
 
+// Diagnostic endpoint to check email configuration
+router.get('/email-config', isAdmin, async (req, res) => {
+    try {
+        const config = {
+            provider: process.env.EMAIL_PROVIDER || 'gmail',
+            nodeEnv: process.env.NODE_ENV || 'development',
+            gmailUser: process.env.GMAIL_USER ? '✓ Configured' : '✗ Missing',
+            gmailPass: process.env.GMAIL_PASS ? '✓ Configured' : '✗ Missing',
+            sendgridKey: process.env.SENDGRID_API_KEY ? '✓ Configured' : '✗ Missing',
+        };
+
+        // Try to verify the transporter
+        const { verifyEmailConfig } = require('../services/mailer');
+        const verified = await verifyEmailConfig();
+
+        res.json({
+            config,
+            transporterVerified: verified,
+            message: verified ? 'Email service is ready' : 'Email service verification failed'
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: error.message,
+            config: {
+                provider: process.env.EMAIL_PROVIDER || 'gmail',
+                nodeEnv: process.env.NODE_ENV || 'development'
+            }
+        });
+    }
+});
+
 // Test Email
 router.post('/test-email', isAdmin, async (req, res) => {
     const { email } = req.body;
+
+    // Log environment info for debugging
+    console.log('[Admin] Test Email Request:', {
+        to: email,
+        provider: process.env.EMAIL_PROVIDER,
+        gmailUser: process.env.GMAIL_USER ? '✓ Set' : '✗ Missing',
+        gmailPass: process.env.GMAIL_PASS ? '✓ Set' : '✗ Missing',
+        nodeEnv: process.env.NODE_ENV
+    });
+
     try {
+        console.log(`[Admin] Attempting to send test email to ${email}...`);
         await sendEmail(email, "Test Reminder", "<h3>Test Notification</h3><p>This is a test reminder from your Contest Reminder System.</p>");
-        res.json({ success: true });
+        console.log(`[Admin] ✅ Test email sent successfully to ${email}`);
+        res.json({
+            success: true,
+            message: `Email sent to ${email}`,
+            provider: process.env.EMAIL_PROVIDER || 'gmail'
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(`[Admin] ❌ Test email failed for ${email}:`, error);
+        res.status(500).json({
+            error: error.message,
+            details: {
+                code: error.code,
+                command: error.command,
+                provider: process.env.EMAIL_PROVIDER || 'gmail'
+            }
+        });
     }
 });
 

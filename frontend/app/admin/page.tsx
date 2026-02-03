@@ -156,6 +156,28 @@ export default function AdminPage() {
         }
     };
 
+    const checkEmailConfig = async () => {
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+            const res = await axios.get(`${backendUrl}/api/admin/email-config`, {
+                headers: { 'x-admin-email': ADMIN_EMAIL }
+            });
+            console.log('Email Config:', res.data);
+
+            const { config, transporterVerified, message } = res.data;
+            const details = `Provider: ${config.provider}\nEnvironment: ${config.nodeEnv}\nGmail User: ${config.gmailUser}\nGmail Pass: ${config.gmailPass}\nTransporter: ${transporterVerified ? '✅ Verified' : '❌ Failed'}`;
+
+            if (transporterVerified) {
+                addToast('success', 'Email Config OK ✅', details);
+            } else {
+                addToast('error', 'Email Config Issue ⚠️', details);
+            }
+        } catch (err) {
+            console.error('Email config check failed:', err);
+            addToast('error', 'Config Check Failed', 'Could not retrieve email configuration');
+        }
+    };
+
     if (!isLoaded) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center">
@@ -262,9 +284,19 @@ export default function AdminPage() {
                         </h1>
                         <p className="text-slate-400">Monitoring {users.length} active users in the system</p>
                     </div>
-                    <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl text-green-400 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />
-                        Verified Admin: {user?.primaryEmailAddress?.emailAddress}
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl text-green-400 text-sm font-medium">
+                            <CheckCircle className="w-4 h-4" />
+                            Verified Admin: {user?.primaryEmailAddress?.emailAddress}
+                        </div>
+                        <button
+                            onClick={checkEmailConfig}
+                            className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition-all"
+                            title="Check email configuration"
+                        >
+                            <Mail className="w-4 h-4" />
+                            Check Email Config
+                        </button>
                     </div>
                 </div>
 
