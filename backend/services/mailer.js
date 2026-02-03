@@ -32,10 +32,14 @@ const createTransporter = () => {
 /**
  * Gmail SMTP Transporter
  * Works well in development, may have issues in production
+ * Supports custom SMTP_HOST and SMTP_PORT environment variables
  */
 const createGmailTransporter = () => {
     const GMAIL_USER = process.env.GMAIL_USER;
     const GMAIL_PASS = process.env.GMAIL_PASS;
+    const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+    const SMTP_SECURE = process.env.SMTP_SECURE === 'true'; // true for port 465, false for 587
 
     if (!GMAIL_USER || !GMAIL_PASS) {
         console.warn('[Mailer] Gmail credentials not configured');
@@ -47,12 +51,12 @@ const createGmailTransporter = () => {
     }
 
     console.log(`[Mailer] Creating Gmail transporter for: ${GMAIL_USER}`);
+    console.log(`[Mailer] SMTP Configuration: ${SMTP_HOST}:${SMTP_PORT} (secure: ${SMTP_SECURE})`);
 
     return nodemailer.createTransport({
-        service: 'gmail',
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // Use STARTTLS
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_SECURE, // true for 465, false for other ports
         auth: {
             user: GMAIL_USER,
             pass: GMAIL_PASS
@@ -64,7 +68,7 @@ const createGmailTransporter = () => {
         // TLS options for production environments
         tls: {
             rejectUnauthorized: false, // Allow self-signed certificates
-            ciphers: 'SSLv3'
+            minVersion: 'TLSv1.2'
         },
         // Enable debug logging in production
         debug: NODE_ENV === 'production',
