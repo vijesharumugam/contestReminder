@@ -51,10 +51,13 @@ const initScheduledJobs = () => {
         await fetchAndSaveContests();
     });
 
-    // 2. Daily Digest: 08:00 AM
+    // 2. Daily Digest: 08:00 AM IST
     cron.schedule('0 8 * * *', async () => {
         console.log('[Cron] Sending daily digest via Telegram...');
         await sendDailyDigest();
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
 
     // 3. 30-min Reminder: Every 5 minutes
@@ -63,12 +66,13 @@ const initScheduledJobs = () => {
         await sendUpcomingReminders();
     });
 
-    // 4. Keep-Alive: Ping self every 10 minutes (prevents Render free tier sleep)
+    // 4. Keep-Alive: Ping self every 14 minutes (prevents Render free tier sleep which happens after 15 mins)
     if (process.env.NODE_ENV === 'production') {
         const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://contestreminder-krrf.onrender.com';
 
-        cron.schedule('*/10 * * * *', async () => {
+        cron.schedule('*/14 * * * *', async () => {
             try {
+                console.log(`[Keep-Alive] Pinging self at ${new Date().toISOString()}...`);
                 await axios.get(SELF_URL);
                 console.log('[Keep-Alive] ✅ Pinged self successfully');
             } catch (error) {
@@ -76,7 +80,7 @@ const initScheduledJobs = () => {
             }
         });
 
-        console.log(`[Keep-Alive] Enabled - pinging ${SELF_URL} every 10 minutes`);
+        console.log(`[Keep-Alive] Enabled - pinging ${SELF_URL} every 14 minutes`);
     }
 
     console.log('[Scheduler] ✅ All jobs initialized successfully');
