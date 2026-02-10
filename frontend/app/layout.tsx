@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import PWARegister from "@/components/PWARegister";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -11,6 +12,10 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 export const metadata: Metadata = {
   title: "Contest Reminder | Professional Contest Tracker",
   description: "Global coding contest reminder system for elite programmers. Never miss a match on Codeforces, CodeChef, or LeetCode.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#020617",
 };
 
 export default function RootLayout({
@@ -36,6 +41,7 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
+          <PWARegister />
         </body>
       </html>
     </ClerkProvider>
