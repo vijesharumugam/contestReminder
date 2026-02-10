@@ -34,7 +34,7 @@ router.put('/preferences', async (req, res) => {
     }
 });
 
-// Get User Status (Telegram linked?)
+// Get User Status
 router.get('/:clerkId', async (req, res) => {
     try {
         const user = await User.findOne({ clerkId: req.params.clerkId });
@@ -45,6 +45,78 @@ router.get('/:clerkId', async (req, res) => {
     }
 });
 
+// ===== PUSH SUBSCRIPTION ROUTES =====
+
+// Subscribe to push notifications
+router.post('/push/subscribe', async (req, res) => {
+    const { clerkId, subscription } = req.body;
+    if (!clerkId || !subscription) return res.status(400).json({ error: "Missing clerkId or subscription" });
+
+    try {
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Check if this subscription endpoint already exists
+        const exists = user.pushSubscriptions.some(s => s.endpoint === subscription.endpoint);
+        if (!exists) {
+            user.pushSubscriptions.push({
+                endpoint: subscription.endpoint,
+                keys: subscription.keys
+            });
+        }
+
+        user.preferences.push = true;
+        await user.save();
+
+        console.log(`[Push] Subscription added for ${user.email} (${user.pushSubscriptions.length} total)`);
+        res.json({ success: true, user });
+    } catch (error) {
+        console.error('[Push] Subscribe error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Unsubscribe from push notifications
+router.post('/push/unsubscribe', async (req, res) => {
+    const { clerkId, endpoint } = req.body;
+    if (!clerkId) return res.status(400).json({ error: "Missing clerkId" });
+
+    try {
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (endpoint) {
+            // Remove specific subscription
+            user.pushSubscriptions = user.pushSubscriptions.filter(s => s.endpoint !== endpoint);
+        } else {
+            // Remove all subscriptions
+            user.pushSubscriptions = [];
+        }
+
+        // If no subscriptions left, disable push preference
+        if (user.pushSubscriptions.length === 0) {
+            user.preferences.push = false;
+        }
+
+        await user.save();
+
+        console.log(`[Push] Unsubscribed for ${user.email} (${user.pushSubscriptions.length} remaining)`);
+        res.json({ success: true, user });
+    } catch (error) {
+        console.error('[Push] Unsubscribe error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get VAPID public key
+router.get('/push/vapid-key', (req, res) => {
+    const key = process.env.VAPID_PUBLIC_KEY;
+    if (!key) return res.status(500).json({ error: "VAPID key not configured" });
+    res.json({ publicKey: key });
+});
+
+// ===== TELEGRAM ROUTES =====
+
 // Disconnect Telegram
 router.post('/disconnect-telegram', async (req, res) => {
     const { clerkId } = req.body;
@@ -54,7 +126,6 @@ router.post('/disconnect-telegram', async (req, res) => {
         const user = await User.findOne({ clerkId });
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Clear Telegram connection
         user.telegramChatId = undefined;
         user.preferences.telegram = false;
         await user.save();
@@ -76,7 +147,6 @@ router.post('/connect-telegram', async (req, res) => {
         const user = await User.findOne({ clerkId });
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Set Telegram connection
         user.telegramChatId = String(telegramChatId);
         user.preferences.telegram = true;
         await user.save();

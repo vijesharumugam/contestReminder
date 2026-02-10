@@ -29,8 +29,9 @@ interface User {
     clerkId: string;
     email: string;
     telegramChatId?: string;
+    pushSubscriptions?: any[];
     preferences: {
-        email: boolean;
+        push?: boolean;
         telegram: boolean;
     };
 }
@@ -117,8 +118,6 @@ export default function AdminPage() {
         }
     }, [isLoaded, isAdmin, fetchUsers]);
 
-
-
     const testTelegram = async (chatId: string, userId: string) => {
         if (!chatId) return;
         const statusKey = `tg-${userId}`;
@@ -139,7 +138,24 @@ export default function AdminPage() {
         }
     };
 
-
+    const testPush = async (userId: string) => {
+        const statusKey = `push-${userId}`;
+        setTestLoading(statusKey);
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+            await axios.post(`${backendUrl}/api/admin/test-push`,
+                { userId },
+                { headers: { 'x-admin-email': ADMIN_EMAIL } }
+            );
+            addToast('success', 'Push Sent! 🔔', `Test push notification sent successfully`);
+            updateTestStatus(statusKey, 'success', 'Sent!');
+        } catch {
+            addToast('error', 'Push Failed', `Could not send push notification`);
+            updateTestStatus(statusKey, 'error', 'Failed');
+        } finally {
+            setTestLoading(null);
+        }
+    };
 
     if (!isLoaded) {
         return (
@@ -207,18 +223,18 @@ export default function AdminPage() {
                     <div
                         key={toast.id}
                         className={`
-                            animate-slide-in-right p-4 rounded-2xl shadow-2xl backdrop-blur-xl border
-                            flex items-start gap-3 min-w-[300px]
-                            ${toast.type === 'success'
+                                animate-slide-in-right p-4 rounded-2xl shadow-2xl backdrop-blur-xl border
+                                flex items-start gap-3 min-w-[300px]
+                                ${toast.type === 'success'
                                 ? 'bg-green-500/20 border-green-500/30 text-green-400'
                                 : 'bg-red-500/20 border-red-500/30 text-red-400'
                             }
-                        `}
+                            `}
                     >
                         <div className={`
-                            w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
-                            ${toast.type === 'success' ? 'bg-green-500/30' : 'bg-red-500/30'}
-                        `}>
+                                w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
+                                ${toast.type === 'success' ? 'bg-green-500/30' : 'bg-red-500/30'}
+                            `}>
                             {toast.type === 'success'
                                 ? <CheckCircle className="w-5 h-5" />
                                 : <AlertCircle className="w-5 h-5" />
@@ -291,6 +307,9 @@ export default function AdminPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex gap-2">
+                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800 text-slate-500'}`}>
+                                                        Push ({u.pushSubscriptions?.length || 0})
+                                                    </span>
                                                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800 text-slate-500'}`}>
                                                         Telegram
                                                     </span>
@@ -298,7 +317,31 @@ export default function AdminPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex gap-3 items-center">
-                                                    {/* Telegram Test Button with Status */}
+                                                    {/* Push Test Button */}
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => testPush(u._id)}
+                                                            disabled={!u.pushSubscriptions?.length || !!testLoading}
+                                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.pushSubscriptions?.length ? 'bg-slate-800 hover:bg-blue-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                                        >
+                                                            {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
+                                                            Test Push
+                                                        </button>
+                                                        {testStatuses[`push-${u._id}`] && (
+                                                            <span className={`
+                                                                    animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
+                                                                    ${testStatuses[`push-${u._id}`].type === 'success'
+                                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                                                }
+                                                                `}>
+                                                                {testStatuses[`push-${u._id}`].type === 'success' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                                                {testStatuses[`push-${u._id}`].message}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Telegram Test Button */}
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => testTelegram(u.telegramChatId!, u._id)}
@@ -306,21 +349,17 @@ export default function AdminPage() {
                                                             className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.telegramChatId ? 'bg-slate-800 hover:bg-sky-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
                                                         >
                                                             {testLoading === `tg-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
-                                                            Test Telegram
+                                                            Test TG
                                                         </button>
-                                                        {/* Inline Telegram Status Indicator */}
                                                         {testStatuses[`tg-${u._id}`] && (
                                                             <span className={`
-                                                                animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
-                                                                ${testStatuses[`tg-${u._id}`].type === 'success'
+                                                                    animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
+                                                                    ${testStatuses[`tg-${u._id}`].type === 'success'
                                                                     ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                                                     : 'bg-red-500/20 text-red-400 border border-red-500/30'
                                                                 }
-                                                            `}>
-                                                                {testStatuses[`tg-${u._id}`].type === 'success'
-                                                                    ? <CheckCircle className="w-3 h-3" />
-                                                                    : <AlertCircle className="w-3 h-3" />
-                                                                }
+                                                                `}>
+                                                                {testStatuses[`tg-${u._id}`].type === 'success' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                                                                 {testStatuses[`tg-${u._id}`].message}
                                                             </span>
                                                         )}

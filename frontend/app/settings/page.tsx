@@ -3,18 +3,32 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import axios from "axios";
-import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, ChevronRight, Zap } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, ChevronRight, Zap, BellRing, BellOff, Smartphone } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 interface UserData {
+    _id: string;
     clerkId: string;
     email: string;
     telegramChatId?: string;
+    pushSubscriptions?: Array<{ endpoint: string; keys: { p256dh: string; auth: string } }>;
     preferences: {
+        push: boolean;
         telegram: boolean;
     };
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
 }
 
 export default function SettingsPage() {
@@ -23,11 +37,24 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
+    const [pushSupported, setPushSupported] = useState(false);
+    const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+    const [subscribingPush, setSubscribingPush] = useState(false);
+
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+
+    // Check push support
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+            setPushSupported(true);
+            setPushPermission(Notification.permission);
+        }
+    }, []);
 
     const fetchUserStatus = useCallback(async () => {
         if (!user) return;
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
             const res = await axios.get(`${backendUrl}/api/users/${user.id}`);
             setUserData(res.data);
         } catch (err) {
@@ -35,7 +62,7 @@ export default function SettingsPage() {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, backendUrl]);
 
     useEffect(() => {
         if (isLoaded && user) {
@@ -43,12 +70,88 @@ export default function SettingsPage() {
         }
     }, [isLoaded, user, fetchUserStatus]);
 
-    const togglePreference = async (key: 'telegram') => {
+    // ===== PUSH NOTIFICATION HANDLERS =====
+    const enablePushNotifications = async () => {
+        if (!user || !pushSupported) return;
+        setSubscribingPush(true);
+
+        try {
+            // Request permission
+            const permission = await Notification.requestPermission();
+            setPushPermission(permission);
+
+            if (permission !== 'granted') {
+                alert('Please allow notifications in your browser settings to receive contest reminders.');
+                setSubscribingPush(false);
+                return;
+            }
+
+            // Get service worker registration
+            const registration = await navigator.serviceWorker.ready;
+
+            // Subscribe to push
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            });
+
+            const subscriptionJSON = subscription.toJSON();
+
+            // Send subscription to backend
+            const res = await axios.post(`${backendUrl}/api/users/push/subscribe`, {
+                clerkId: user.id,
+                subscription: {
+                    endpoint: subscriptionJSON.endpoint,
+                    keys: {
+                        p256dh: subscriptionJSON.keys?.p256dh,
+                        auth: subscriptionJSON.keys?.auth
+                    }
+                }
+            });
+
+            setUserData(res.data.user);
+            console.log('[Push] Subscribed successfully');
+        } catch (err) {
+            console.error('[Push] Subscription failed:', err);
+            alert('Failed to enable push notifications. Please try again.');
+        } finally {
+            setSubscribingPush(false);
+        }
+    };
+
+    const disablePushNotifications = async () => {
+        if (!user) return;
+        if (!confirm('Disable push notifications? You won\'t receive contest reminders from the app.')) return;
+
+        setSubscribingPush(true);
+        try {
+            // Unsubscribe from push in browser
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+                await subscription.unsubscribe();
+            }
+
+            // Remove from backend
+            const res = await axios.post(`${backendUrl}/api/users/push/unsubscribe`, {
+                clerkId: user.id,
+                endpoint: subscription?.endpoint
+            });
+
+            setUserData(res.data.user);
+        } catch (err) {
+            console.error('[Push] Unsubscribe failed:', err);
+        } finally {
+            setSubscribingPush(false);
+        }
+    };
+
+    // ===== TELEGRAM HANDLERS =====
+    const toggleTelegramPreference = async () => {
         if (!userData || !user) return;
         setUpdating(true);
         try {
-            const newPrefs = { ...userData.preferences, [key]: !userData.preferences[key] };
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+            const newPrefs = { ...userData.preferences, telegram: !userData.preferences.telegram };
             const res = await axios.put(`${backendUrl}/api/users/preferences`, {
                 clerkId: user.id,
                 preferences: newPrefs,
@@ -62,11 +165,9 @@ export default function SettingsPage() {
     };
 
     const disconnectTelegram = async () => {
-        if (!user || !confirm('Are you sure you want to disconnect Telegram? You will stop receiving notifications.')) return;
-
+        if (!user || !confirm('Disconnect Telegram? You will stop receiving Telegram notifications.')) return;
         setDisconnecting(true);
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
             const res = await axios.post(`${backendUrl}/api/users/disconnect-telegram`, {
                 clerkId: user.id,
             });
@@ -92,12 +193,13 @@ export default function SettingsPage() {
 
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ContestReminderBot";
     const telegramLink = `https://t.me/${botUsername}?start=${user?.id}`;
-    const isConnected = !!userData?.telegramChatId;
-    const isEnabled = userData?.preferences?.telegram;
+    const isTelegramConnected = !!userData?.telegramChatId;
+    const isTelegramEnabled = userData?.preferences?.telegram;
+    const isPushEnabled = userData?.preferences?.push && (userData?.pushSubscriptions?.length ?? 0) > 0;
 
     return (
         <div className="max-w-lg mx-auto space-y-4 md:space-y-6">
-            {/* Page Header with user info */}
+            {/* Page Header */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -110,121 +212,84 @@ export default function SettingsPage() {
                     <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase text-blue-400">Notifications</span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold font-outfit">Settings</h1>
-                <p className="text-slate-500 text-xs md:text-sm">Manage your notification preferences</p>
+                <p className="text-slate-500 text-xs md:text-sm">Choose how you want to receive contest reminders</p>
             </motion.div>
 
-            {/* Connection Status Banner */}
+            {/* ======= PRIMARY: Push Notifications ======= */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className={cn(
-                    "p-3 md:p-4 rounded-2xl flex items-center gap-3 border",
-                    isConnected
-                        ? "bg-emerald-500/5 border-emerald-500/15"
-                        : "bg-amber-500/5 border-amber-500/15"
-                )}
-            >
-                <div className={cn(
-                    "w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center flex-shrink-0",
-                    isConnected ? "bg-emerald-500/15" : "bg-amber-500/15"
-                )}>
-                    {isConnected ? (
-                        <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
-                    ) : (
-                        <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />
-                    )}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className={cn(
-                        "text-xs md:text-sm font-bold",
-                        isConnected ? "text-emerald-400" : "text-amber-400"
-                    )}>
-                        {isConnected ? "Telegram Connected" : "Telegram Not Connected"}
-                    </p>
-                    <p className="text-[10px] md:text-xs text-slate-500 truncate">
-                        {isConnected ? `Chat ID: ${userData?.telegramChatId}` : "Link your account to receive reminders"}
-                    </p>
-                </div>
-                {isConnected && (
-                    <button onClick={fetchUserStatus} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">
-                        <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
-                )}
-            </motion.div>
-
-            {/* Main Telegram Card */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
                 className="glass rounded-2xl md:rounded-3xl overflow-hidden"
             >
-                {/* Card Header with gradient */}
-                <div className="relative px-4 md:px-6 py-4 md:py-5 bg-gradient-to-r from-sky-600/20 via-blue-600/15 to-indigo-600/20 border-b border-white/5">
+                {/* Header */}
+                <div className="relative px-4 md:px-6 py-4 md:py-5 bg-gradient-to-r from-blue-600/20 via-indigo-600/15 to-purple-600/20 border-b border-white/5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="bg-sky-500/25 p-2 md:p-2.5 rounded-xl border border-sky-500/20">
-                                <Send className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                            <div className="bg-blue-500/25 p-2 md:p-2.5 rounded-xl border border-blue-500/20">
+                                <BellRing className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-sm md:text-base text-white">Telegram Alerts</h3>
-                                <p className="text-[10px] md:text-xs text-sky-300/60">Instant push notifications</p>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-sm md:text-base text-white">Push Notifications</h3>
+                                    <span className="text-[8px] md:text-[9px] font-black tracking-widest uppercase bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full border border-blue-500/20">Primary</span>
+                                </div>
+                                <p className="text-[10px] md:text-xs text-blue-300/60">Native app-like notifications</p>
                             </div>
                         </div>
-                        {isConnected && (
-                            <button
-                                onClick={() => togglePreference('telegram')}
-                                disabled={updating}
-                                className={cn(
-                                    "w-11 h-6 md:w-12 md:h-7 rounded-full transition-all relative p-0.5 border",
-                                    isEnabled
-                                        ? "bg-sky-600 border-sky-500/50 shadow-lg shadow-sky-500/20"
-                                        : "bg-slate-700 border-slate-600/50"
-                                )}
-                            >
-                                <div className={cn(
-                                    "w-5 h-5 md:w-6 md:h-6 bg-white rounded-full transition-all transform shadow-md",
-                                    isEnabled ? "translate-x-5 md:translate-x-5" : "translate-x-0"
-                                )} />
-                            </button>
-                        )}
                     </div>
                 </div>
 
-                {/* Card Body */}
+                {/* Body */}
                 <div className="p-4 md:p-6">
-                    {!isConnected ? (
+                    {!pushSupported ? (
+                        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/15 p-3 rounded-xl text-amber-400 text-xs md:text-sm">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            <span>Push notifications are not supported in this browser. Try Chrome, Edge, or Firefox.</span>
+                        </div>
+                    ) : pushPermission === 'denied' ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/15 p-3 rounded-xl text-red-400 text-xs md:text-sm">
+                                <BellOff className="w-4 h-4 flex-shrink-0" />
+                                <span>Notifications are blocked. Please enable them in your browser settings and refresh.</span>
+                            </div>
+                        </div>
+                    ) : !isPushEnabled ? (
                         <div className="space-y-4">
                             <div className="text-center space-y-2 py-2">
-                                <div className="w-14 h-14 md:w-16 md:h-16 bg-sky-500/10 rounded-2xl flex items-center justify-center mx-auto border border-sky-500/15">
-                                    <MessageSquare className="w-7 h-7 md:w-8 md:h-8 text-sky-400" />
+                                <div className="w-14 h-14 md:w-16 md:h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto border border-blue-500/15">
+                                    <Smartphone className="w-7 h-7 md:w-8 md:h-8 text-blue-400" />
                                 </div>
-                                <p className="text-sm md:text-base font-semibold text-white">Connect Your Telegram</p>
+                                <p className="text-sm md:text-base font-semibold text-white">Enable Push Notifications</p>
                                 <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-                                    Link your Telegram account to receive daily contest digests and 30-minute reminders before contests start.
+                                    Get native notifications for daily digests and contest reminders — just like a real app.
                                 </p>
                             </div>
-                            <a
-                                href={telegramLink}
-                                target="_blank"
-                                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 text-sm md:text-base active:scale-[0.98]"
+                            <button
+                                onClick={enablePushNotifications}
+                                disabled={subscribingPush}
+                                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/20 text-sm md:text-base active:scale-[0.98] disabled:opacity-50"
                             >
-                                <Send className="w-4 h-4" />
-                                Connect Telegram
-                            </a>
-                            <p className="text-[9px] md:text-[10px] text-center text-slate-600 uppercase tracking-widest font-bold">
-                                Opens Telegram App
-                            </p>
+                                {subscribingPush ? (
+                                    <Spinner size="sm" />
+                                ) : (
+                                    <BellRing className="w-4 h-4" />
+                                )}
+                                {subscribingPush ? 'Enabling...' : 'Enable Notifications'}
+                            </button>
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {/* Active features when connected */}
+                            {/* Status */}
+                            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/15 p-3 rounded-xl">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <span className="text-xs md:text-sm text-emerald-400 font-medium">Push notifications enabled</span>
+                                <span className="ml-auto text-[10px] text-slate-500">{userData?.pushSubscriptions?.length} device(s)</span>
+                            </div>
+
+                            {/* Active features */}
                             <div className="space-y-2">
-                                <div className={cn(
-                                    "flex items-center gap-3 p-2.5 md:p-3 rounded-xl transition-colors",
-                                    isEnabled ? "bg-white/5" : "bg-white/[0.02] opacity-50"
-                                )}>
+                                <div className="flex items-center gap-3 p-2.5 md:p-3 rounded-xl bg-white/5">
                                     <div className="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
                                         <Sparkles className="w-4 h-4 text-blue-400" />
                                     </div>
@@ -232,12 +297,9 @@ export default function SettingsPage() {
                                         <p className="text-xs md:text-sm font-semibold text-white">Daily Digest</p>
                                         <p className="text-[10px] md:text-xs text-slate-500">Every morning at 8:00 AM IST</p>
                                     </div>
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                 </div>
-                                <div className={cn(
-                                    "flex items-center gap-3 p-2.5 md:p-3 rounded-xl transition-colors",
-                                    isEnabled ? "bg-white/5" : "bg-white/[0.02] opacity-50"
-                                )}>
+                                <div className="flex items-center gap-3 p-2.5 md:p-3 rounded-xl bg-white/5">
                                     <div className="w-8 h-8 bg-purple-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
                                         <Clock className="w-4 h-4 text-purple-400" />
                                     </div>
@@ -245,24 +307,111 @@ export default function SettingsPage() {
                                         <p className="text-xs md:text-sm font-semibold text-white">30-Min Reminders</p>
                                         <p className="text-[10px] md:text-xs text-slate-500">Alert before contest starts</p>
                                     </div>
-                                    <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                 </div>
                             </div>
 
-                            {/* Divider */}
                             <div className="border-t border-white/5 my-1" />
 
-                            {/* Disconnect button - subtle, not alarming */}
+                            <button
+                                onClick={disablePushNotifications}
+                                disabled={subscribingPush}
+                                className="flex items-center justify-center gap-2 w-full text-slate-400 hover:text-red-400 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 text-xs md:text-sm hover:bg-red-500/5 active:scale-[0.98]"
+                            >
+                                {subscribingPush ? <Spinner size="sm" /> : <BellOff className="w-3.5 h-3.5" />}
+                                Disable Push Notifications
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+
+            {/* ======= SECONDARY: Telegram ======= */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="glass rounded-2xl md:rounded-3xl overflow-hidden"
+            >
+                {/* Header */}
+                <div className="relative px-4 md:px-6 py-4 md:py-5 bg-gradient-to-r from-sky-600/15 via-cyan-600/10 to-teal-600/15 border-b border-white/5">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-sky-500/25 p-2 md:p-2.5 rounded-xl border border-sky-500/20">
+                                <Send className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-sm md:text-base text-white">Telegram</h3>
+                                    <span className="text-[8px] md:text-[9px] font-black tracking-widest uppercase bg-slate-500/20 text-slate-400 px-1.5 py-0.5 rounded-full border border-slate-500/20">Optional</span>
+                                </div>
+                                <p className="text-[10px] md:text-xs text-sky-300/60">Get reminders on Telegram too</p>
+                            </div>
+                        </div>
+                        {isTelegramConnected && (
+                            <button
+                                onClick={toggleTelegramPreference}
+                                disabled={updating}
+                                className={cn(
+                                    "w-11 h-6 md:w-12 md:h-7 rounded-full transition-all relative p-0.5 border",
+                                    isTelegramEnabled
+                                        ? "bg-sky-600 border-sky-500/50 shadow-lg shadow-sky-500/20"
+                                        : "bg-slate-700 border-slate-600/50"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-5 h-5 md:w-6 md:h-6 bg-white rounded-full transition-all transform shadow-md",
+                                    isTelegramEnabled ? "translate-x-5 md:translate-x-5" : "translate-x-0"
+                                )} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="p-4 md:p-6">
+                    {!isTelegramConnected ? (
+                        <div className="space-y-4">
+                            <div className="text-center space-y-2 py-2">
+                                <div className="w-14 h-14 md:w-16 md:h-16 bg-sky-500/10 rounded-2xl flex items-center justify-center mx-auto border border-sky-500/15">
+                                    <MessageSquare className="w-7 h-7 md:w-8 md:h-8 text-sky-400" />
+                                </div>
+                                <p className="text-sm md:text-base font-semibold text-white">Connect Telegram</p>
+                                <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                                    Also get contest reminders on Telegram as a backup channel.
+                                </p>
+                            </div>
+                            <a
+                                href={telegramLink}
+                                target="_blank"
+                                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 text-sm md:text-base active:scale-[0.98]"
+                            >
+                                <Send className="w-4 h-4" />
+                                Connect Telegram
+                            </a>
+                            <p className="text-[9px] md:text-[10px] text-center text-slate-600 uppercase tracking-widest font-bold">
+                                Opens Telegram App · Press /start
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/15 p-3 rounded-xl">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                <span className="text-xs md:text-sm text-emerald-400 font-medium">Connected</span>
+                                <span className="ml-auto text-[10px] text-slate-500 font-mono">{userData?.telegramChatId}</span>
+                                <button onClick={fetchUserStatus} className="p-1 text-slate-400 hover:text-white">
+                                    <RefreshCw className="w-3 h-3" />
+                                </button>
+                            </div>
+
+                            <div className="border-t border-white/5 my-1" />
+
                             <button
                                 onClick={disconnectTelegram}
                                 disabled={disconnecting}
                                 className="flex items-center justify-center gap-2 w-full text-slate-400 hover:text-red-400 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 text-xs md:text-sm hover:bg-red-500/5 active:scale-[0.98]"
                             >
-                                {disconnecting ? (
-                                    <Spinner size="sm" />
-                                ) : (
-                                    <Unlink className="w-3.5 h-3.5" />
-                                )}
+                                {disconnecting ? <Spinner size="sm" /> : <Unlink className="w-3.5 h-3.5" />}
                                 Disconnect Telegram
                             </button>
                         </div>
@@ -294,13 +443,13 @@ export default function SettingsPage() {
                             icon: Clock,
                             color: "purple",
                             title: "30-Min Heads Up",
-                            desc: "A reminder 30 minutes before each contest starts so you never miss the registration.",
+                            desc: "A reminder 30 minutes before each contest starts so you never miss it.",
                         },
                         {
                             icon: Bell,
                             color: "amber",
-                            title: "Welcome Summary",
-                            desc: "When you first connect, you'll get a summary of contests in the next 3 days.",
+                            title: "Multi-Channel",
+                            desc: "Push notifications work like a native app. Telegram is optional backup.",
                         },
                     ].map((feature, i) => (
                         <div key={i} className="flex items-start gap-3 glass p-3 md:p-4 rounded-xl md:rounded-2xl border-white/5">

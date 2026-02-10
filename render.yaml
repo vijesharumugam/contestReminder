@@ -13,7 +13,7 @@ services:
       # - MONGODB_URI
       # - CLIST_USERNAME
       # - CLIST_API_KEY
-      # - GMAIL_USER
-      # - GMAIL_PASS
       # - TELEGRAM_BOT_TOKEN
       # - NEXT_PUBLIC_ADMIN_EMAIL
+      # - VAPID_PUBLIC_KEY
+      # - VAPID_PRIVATE_KEY
