@@ -41,24 +41,25 @@ const sendDailyDigest = async () => {
             startTime: { $gte: now, $lt: next24h }
         }).sort({ startTime: 1 }).lean();
 
-        if (!upcomingContests.length) {
-            console.log('[Scheduler] No upcoming contests for daily digest');
-            return;
-        }
-
-        console.log(`[Scheduler] Sending daily digest to ${users.length} users via Telegram`);
+        console.log(`[Scheduler] Sending daily digest to ${users.length} users via Telegram (${upcomingContests.length} contests found)`);
 
         // Send to all users in parallel for better performance
         await Promise.allSettled(
             users.map(async (user) => {
                 try {
-                    // Format contests professionally
-                    const contestList = upcomingContests.map((contest, index) => {
-                        const timeStr = formatDateTime(contest.startTime);
-                        return `${index + 1}. *${contest.name}*\n   📍 Platform: ${contest.platform}\n   ⏰ ${timeStr}\n   🔗 [Join Contest](${contest.url})`;
-                    }).join('\n\n');
+                    let message;
 
-                    const message = `🌟 *Daily Contest Digest*\n━━━━━━━━━━━━━━━━━━━━\n\n📅 *${upcomingContests.length} Contest${upcomingContests.length > 1 ? 's' : ''} in the Next 24 Hours*\n\n${contestList}\n\n━━━━━━━━━━━━━━━━━━━━\n💡 Good luck and happy coding!`;
+                    if (upcomingContests.length > 0) {
+                        // Format contests professionally
+                        const contestList = upcomingContests.map((contest, index) => {
+                            const timeStr = formatDateTime(contest.startTime);
+                            return `${index + 1}. *${contest.name}*\n   📍 Platform: ${contest.platform}\n   ⏰ ${timeStr}\n   🔗 [Join Contest](${contest.url})`;
+                        }).join('\n\n');
+
+                        message = `🌟 *Daily Contest Digest*\n━━━━━━━━━━━━━━━━━━━━\n\n📅 *${upcomingContests.length} Contest${upcomingContests.length > 1 ? 's' : ''} in the Next 24 Hours*\n\n${contestList}\n\n━━━━━━━━━━━━━━━━━━━━\n💡 Good luck and happy coding!`;
+                    } else {
+                        message = `☀️ *Good Morning! Daily Contest Update*\n━━━━━━━━━━━━━━━━━━━━\n\n📭 *No contests scheduled for today.*\n\nTake this time to practice, review past problems, or relax — you've earned it! 💪\n\nWe'll notify you as soon as new contests are available.\n\n━━━━━━━━━━━━━━━━━━━━\n🔔 Stay tuned for tomorrow's digest!`;
+                    }
 
                     await sendTelegramMessage(user.telegramChatId, message);
                     console.log(`[Scheduler] ✅ Daily digest sent to ${user.email}`);

@@ -79,10 +79,19 @@
     background-image:
       radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
       radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+    /* Prevent pull-to-refresh / overscroll on mobile for app feel */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   ::selection {
     @apply bg-blue-500/30 text-white;
+  }
+
+  /* Smooth scroll on iOS */
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -102,6 +111,20 @@
 
   .box-glow-blue {
     box-shadow: 0 0 30px -10px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Hide scrollbar utility for horizontal scroll areas */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area padding for bottom nav (notch devices) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Toast Notification Animations */
@@ -137,7 +160,7 @@
     }
   }
 
-  /* Custom Scrollbar */
+  /* Custom Scrollbar - desktop only */
   @media (min-width: 768px) {
     ::-webkit-scrollbar {
       width: 10px;

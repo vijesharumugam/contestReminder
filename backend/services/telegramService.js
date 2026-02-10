@@ -110,7 +110,7 @@ if (token) {
 const sendTelegramMessage = async (chatId, text) => {
     if (!bot || !chatId) return;
     try {
-        await bot.sendMessage(chatId, text);
+        await bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
     } catch (error) {
         console.error(`Telegram Send Error to ${chatId}:`, error.message);
     }
