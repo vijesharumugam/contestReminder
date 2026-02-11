@@ -54,8 +54,8 @@ router.post('/test-push', isAdmin, async (req, res) => {
             type: 'test',
             title: '🔔 Test Notification',
             body: 'Push notifications are working correctly! You will receive contest reminders here.',
-            icon: '/icons/icon-192x192.svg',
-            badge: '/icons/icon-192x192.svg',
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/icon-192x192.png',
             data: { url: '/' }
         };
 
@@ -85,8 +85,8 @@ router.post('/send-notification', isAdmin, async (req, res) => {
                 type: 'custom',
                 title,
                 body: message,
-                icon: '/icons/icon-192x192.svg',
-                badge: '/icons/icon-192x192.svg',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-192x192.png',
                 data: { url: '/' }
             };
             await sendPushToUser(user, payload);

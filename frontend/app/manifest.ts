@@ -7,6 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
         description:
             'Track coding contests from Codeforces, CodeChef, LeetCode, and more. Never miss a competitive programming contest again.',
         start_url: '/',
+        scope: '/',
+        id: '/',
         display: 'standalone',
         background_color: '#020617',
         theme_color: '#020617',
@@ -14,21 +16,21 @@ export default function manifest(): MetadataRoute.Manifest {
         categories: ['education', 'productivity', 'utilities'],
         icons: [
             {
-                src: '/icons/icon-192x192.svg',
+                src: '/icons/icon-192x192.png',
                 sizes: '192x192',
-                type: 'image/svg+xml',
+                type: 'image/png',
                 purpose: 'any',
             },
             {
-                src: '/icons/icon-512x512.svg',
+                src: '/icons/icon-512x512.png',
                 sizes: '512x512',
-                type: 'image/svg+xml',
+                type: 'image/png',
                 purpose: 'any',
             },
             {
-                src: '/icons/icon-maskable-512x512.svg',
+                src: '/icons/icon-maskable-512x512.png',
                 sizes: '512x512',
-                type: 'image/svg+xml',
+                type: 'image/png',
                 purpose: 'maskable',
             },
         ],

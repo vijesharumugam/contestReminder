@@ -61,8 +61,8 @@ const sendDailyDigest = async () => {
                                 type: 'daily_digest',
                                 title: `📅 ${upcomingContests.length} Contest${upcomingContests.length > 1 ? 's' : ''} Today`,
                                 body: `${contestNames}${more}`,
-                                icon: '/icons/icon-192x192.svg',
-                                badge: '/icons/icon-192x192.svg',
+                                icon: '/icons/icon-192x192.png',
+                                badge: '/icons/icon-192x192.png',
                                 data: {
                                     url: '/',
                                     contests: upcomingContests.map(c => ({
@@ -78,8 +78,8 @@ const sendDailyDigest = async () => {
                                 type: 'daily_digest',
                                 title: '☀️ Good Morning!',
                                 body: 'No contests scheduled for today. Take a break or practice!',
-                                icon: '/icons/icon-192x192.svg',
-                                badge: '/icons/icon-192x192.svg',
+                                icon: '/icons/icon-192x192.png',
+                                badge: '/icons/icon-192x192.png',
                                 data: { url: '/' }
                             };
                         }
@@ -167,8 +167,8 @@ const sendUpcomingReminders = async () => {
                                 type: 'reminder',
                                 title: `⏰ ${contest.name} starts in 30 min!`,
                                 body: `${contest.platform} • ${timeStr}`,
-                                icon: '/icons/icon-192x192.svg',
-                                badge: '/icons/icon-192x192.svg',
+                                icon: '/icons/icon-192x192.png',
+                                badge: '/icons/icon-192x192.png',
                                 data: {
                                     url: contest.url,
                                     contestName: contest.name,
