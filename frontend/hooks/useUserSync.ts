@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import axios from 'axios';
+import api from '@/lib/api';
 
 export const useUserSync = () => {
     const { user, isSignedIn } = useUser();
@@ -9,8 +9,7 @@ export const useUserSync = () => {
         const syncUser = async () => {
             if (isSignedIn && user) {
                 try {
-                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-                    await axios.post(`${backendUrl}/api/users/sync`, {
+                    await api.post(`/api/users/sync`, {
                         clerkId: user.id,
                         email: user.primaryEmailAddress?.emailAddress,
                     });

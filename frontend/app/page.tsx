@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/api";
 import ContestCard from "@/components/ContestCard";
 import { Filter, Zap, Bell, Globe, ArrowRight, Trophy } from "lucide-react";
 import { useUserSync } from "@/hooks/useUserSync";
@@ -26,10 +26,9 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
         const [contestsRes, platformsRes] = await Promise.all([
-          axios.get(`${backendUrl}/api/contests${filter !== "All" ? `?platform=${filter}` : ""}`),
-          axios.get(`${backendUrl}/api/contests/platforms`)
+          api.get(`/api/contests${filter !== "All" ? `?platform=${filter}` : ""}`),
+          api.get(`/api/contests/platforms`)
         ]);
         setContests(contestsRes.data);
         setPlatforms(["All", ...platformsRes.data.filter((p: string) => p.toLowerCase() !== "unknown")]);

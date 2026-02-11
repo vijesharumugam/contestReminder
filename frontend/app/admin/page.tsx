@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
 import axios from "axios";
+import api from "@/lib/api";
 import Link from "next/link";
 import { Users, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle, ShieldAlert, X, Bell } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
@@ -93,9 +94,7 @@ export default function AdminPage() {
         setLoading(true);
         setError("");
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            console.log("Fetching users from:", `${backendUrl}/api/admin/users`);
-            const res = await axios.get(`${backendUrl}/api/admin/users`, {
+            const res = await api.get(`/api/admin/users`, {
                 headers: { 'x-admin-email': ADMIN_EMAIL }
             });
             console.log("Users fetched:", res.data);
@@ -123,8 +122,7 @@ export default function AdminPage() {
         const statusKey = `tg-${userId}`;
         setTestLoading(statusKey);
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            await axios.post(`${backendUrl}/api/admin/test-telegram`,
+            await api.post(`/api/admin/test-telegram`,
                 { chatId },
                 { headers: { 'x-admin-email': ADMIN_EMAIL } }
             );
@@ -142,8 +140,7 @@ export default function AdminPage() {
         const statusKey = `push-${userId}`;
         setTestLoading(statusKey);
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            await axios.post(`${backendUrl}/api/admin/test-push`,
+            await api.post(`/api/admin/test-push`,
                 { userId },
                 { headers: { 'x-admin-email': ADMIN_EMAIL } }
             );

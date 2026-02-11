@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
-import axios from "axios";
+import api from "@/lib/api";
 import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, ChevronRight, Zap, BellRing, BellOff, Smartphone } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ export default function SettingsPage() {
     const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
     const [subscribingPush, setSubscribingPush] = useState(false);
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 
     // Check push support
@@ -55,14 +55,14 @@ export default function SettingsPage() {
     const fetchUserStatus = useCallback(async () => {
         if (!user) return;
         try {
-            const res = await axios.get(`${backendUrl}/api/users/${user.id}`);
+            const res = await api.get(`/api/users/${user.id}`);
             setUserData(res.data);
         } catch (err) {
             console.error("Error fetching user status:", err);
         } finally {
             setLoading(false);
         }
-    }, [user, backendUrl]);
+    }, [user]);
 
     useEffect(() => {
         if (isLoaded && user) {
@@ -98,7 +98,7 @@ export default function SettingsPage() {
             const subscriptionJSON = subscription.toJSON();
 
             // Send subscription to backend
-            const res = await axios.post(`${backendUrl}/api/users/push/subscribe`, {
+            const res = await api.post(`/api/users/push/subscribe`, {
                 clerkId: user.id,
                 subscription: {
                     endpoint: subscriptionJSON.endpoint,
@@ -133,7 +133,7 @@ export default function SettingsPage() {
             }
 
             // Remove from backend
-            const res = await axios.post(`${backendUrl}/api/users/push/unsubscribe`, {
+            const res = await api.post(`/api/users/push/unsubscribe`, {
                 clerkId: user.id,
                 endpoint: subscription?.endpoint
             });
@@ -152,7 +152,7 @@ export default function SettingsPage() {
         setUpdating(true);
         try {
             const newPrefs = { ...userData.preferences, telegram: !userData.preferences.telegram };
-            const res = await axios.put(`${backendUrl}/api/users/preferences`, {
+            const res = await api.put(`/api/users/preferences`, {
                 clerkId: user.id,
                 preferences: newPrefs,
             });
@@ -168,7 +168,7 @@ export default function SettingsPage() {
         if (!user || !confirm('Disconnect Telegram? You will stop receiving Telegram notifications.')) return;
         setDisconnecting(true);
         try {
-            const res = await axios.post(`${backendUrl}/api/users/disconnect-telegram`, {
+            const res = await api.post(`/api/users/disconnect-telegram`, {
                 clerkId: user.id,
             });
             setUserData(res.data);
