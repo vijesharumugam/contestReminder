@@ -218,23 +218,23 @@ export default function AdminPage() {
     return (
         <>
             {/* Toast Notifications Container */}
-            <div className="fixed top-4 right-4 z-50 flex flex-col gap-3 max-w-sm">
+            <div className="fixed top-20 right-3 left-3 md:left-auto md:right-4 md:top-4 z-50 flex flex-col gap-3 md:max-w-sm">
                 {toasts.map((toast) => (
                     <div
                         key={toast.id}
                         className={`
-                                animate-slide-in-right p-4 rounded-2xl shadow-2xl backdrop-blur-xl border
-                                flex items-start gap-3 min-w-[300px]
-                                ${toast.type === 'success'
+                            animate-slide-in-right p-3 md:p-4 rounded-2xl shadow-2xl backdrop-blur-xl border
+                            flex items-start gap-3
+                            ${toast.type === 'success'
                                 ? 'bg-green-500/20 border-green-500/30 text-green-400'
                                 : 'bg-red-500/20 border-red-500/30 text-red-400'
                             }
-                            `}
+                        `}
                     >
                         <div className={`
-                                w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
-                                ${toast.type === 'success' ? 'bg-green-500/30' : 'bg-red-500/30'}
-                            `}>
+                            w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
+                            ${toast.type === 'success' ? 'bg-green-500/30' : 'bg-red-500/30'}
+                        `}>
                             {toast.type === 'success'
                                 ? <CheckCircle className="w-5 h-5" />
                                 : <AlertCircle className="w-5 h-5" />
@@ -254,130 +254,201 @@ export default function AdminPage() {
                 ))}
             </div>
 
-            <div className="space-y-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-8">
-                    <div className="space-y-1">
-                        <h1 className="text-4xl font-bold font-outfit flex items-center gap-3">
-                            <LayoutDashboard className="text-blue-500" />
-                            Master Dashboard
-                        </h1>
-                        <p className="text-slate-400">Monitoring {users.length} active users in the system</p>
-                    </div>
-                    <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl text-green-400 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4" />
-                        Verified Admin: {user?.primaryEmailAddress?.emailAddress}
+            <div className="space-y-4 md:space-y-8 overflow-x-hidden">
+                {/* Header — compact on mobile */}
+                <div className="flex flex-col gap-3 md:gap-4 border-b border-slate-800 pb-4 md:pb-8">
+                    <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3 md:gap-4">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl md:text-4xl font-bold font-outfit flex items-center gap-2 md:gap-3">
+                                <LayoutDashboard className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
+                                Dashboard
+                            </h1>
+                            <p className="text-slate-500 text-xs md:text-base">{users.length} active users</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-green-400 text-[10px] md:text-sm font-medium">
+                            <CheckCircle className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                            <span className="truncate max-w-[200px] md:max-w-none">Admin: {user?.primaryEmailAddress?.emailAddress}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                    <div className="glass rounded-3xl overflow-hidden border-blue-500/10">
-                        <div className="p-6 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                            <h3 className="font-bold text-xl flex items-center gap-2">
-                                <Users className="w-5 h-5 text-blue-500" />
-                                User Directory
-                            </h3>
-                            <button onClick={fetchUsers} disabled={loading} className="text-slate-400 hover:text-white transition-colors disabled:opacity-50">
-                                {loading ? <Spinner size="sm" /> : <CheckCircle className="w-5 h-5" />}
-                            </button>
-                        </div>
+                {/* User Directory */}
+                <div className="glass rounded-2xl md:rounded-3xl overflow-hidden border-blue-500/10">
+                    <div className="px-4 py-3 md:p-6 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                        <h3 className="font-bold text-base md:text-xl flex items-center gap-2">
+                            <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
+                            User Directory
+                        </h3>
+                        <button onClick={fetchUsers} disabled={loading} className="text-slate-400 hover:text-white transition-colors disabled:opacity-50">
+                            {loading ? <Spinner size="sm" /> : <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />}
+                        </button>
+                    </div>
 
-                        {error && (
-                            <div className="mx-6 my-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 text-sm">
-                                <AlertCircle className="w-5 h-5" />
-                                <span>{error}</span>
-                                <button onClick={fetchUsers} className="ml-auto underline font-bold">Retry</button>
+                    {error && (
+                        <div className="mx-3 md:mx-6 my-3 md:my-4 p-3 md:p-4 bg-red-500/10 border border-red-500/20 rounded-xl md:rounded-2xl flex items-center gap-2 md:gap-3 text-red-500 text-xs md:text-sm">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            <span className="flex-1 min-w-0 break-words">{error}</span>
+                            <button onClick={fetchUsers} className="underline font-bold flex-shrink-0">Retry</button>
+                        </div>
+                    )}
+
+                    {/* ===== MOBILE: Card Layout ===== */}
+                    <div className="md:hidden divide-y divide-slate-800/50">
+                        {users.map((u) => (
+                            <div key={u._id} className="p-4 space-y-3">
+                                {/* User Info */}
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-bold text-sm text-white truncate">{u.email}</p>
+                                        <p className="text-[10px] text-slate-600 font-mono mt-0.5 truncate">{u.clerkId.slice(-8)}</p>
+                                    </div>
+                                    {/* Telegram indicator */}
+                                    {u.telegramChatId && (
+                                        <Send className="w-3.5 h-3.5 text-sky-400 flex-shrink-0 mt-1" />
+                                    )}
+                                </div>
+
+                                {/* Status badges + Actions */}
+                                <div className="flex items-center justify-between gap-2">
+                                    {/* Status badges */}
+                                    <div className="flex gap-1.5">
+                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800/50 text-slate-600'}`}>
+                                            Push ({u.pushSubscriptions?.length || 0})
+                                        </span>
+                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800/50 text-slate-600'}`}>
+                                            TG
+                                        </span>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex gap-2 items-center">
+                                        {/* Push test */}
+                                        <button
+                                            onClick={() => testPush(u._id)}
+                                            disabled={!u.pushSubscriptions?.length || !!testLoading}
+                                            className={`p-2 rounded-xl transition-all border disabled:opacity-20 ${u.pushSubscriptions?.length ? 'bg-slate-800 hover:bg-blue-500 border-slate-700 active:scale-95' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                        >
+                                            {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-3.5 h-3.5 text-blue-400" />}
+                                        </button>
+                                        {testStatuses[`push-${u._id}`] && (
+                                            <span className={`animate-fade-in text-[10px] font-bold ${testStatuses[`push-${u._id}`].type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                                                {testStatuses[`push-${u._id}`].type === 'success' ? '✓' : '✗'}
+                                            </span>
+                                        )}
+
+                                        {/* Telegram test */}
+                                        <button
+                                            onClick={() => testTelegram(u.telegramChatId!, u._id)}
+                                            disabled={!u.telegramChatId || !!testLoading}
+                                            className={`p-2 rounded-xl transition-all border disabled:opacity-20 ${u.telegramChatId ? 'bg-slate-800 hover:bg-sky-500 border-slate-700 active:scale-95' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                        >
+                                            {testLoading === `tg-${u._id}` ? <Spinner size="sm" /> : <Send className="w-3.5 h-3.5 text-sky-400" />}
+                                        </button>
+                                        {testStatuses[`tg-${u._id}`] && (
+                                            <span className={`animate-fade-in text-[10px] font-bold ${testStatuses[`tg-${u._id}`].type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                                                {testStatuses[`tg-${u._id}`].type === 'success' ? '✓' : '✗'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {!loading && users.length === 0 && (
+                            <div className="px-4 py-16 text-center text-slate-500 text-sm italic">
+                                No users detected in the matrix.
                             </div>
                         )}
+                    </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-900/50 text-slate-500 text-xs uppercase tracking-widest font-bold">
-                                    <tr>
-                                        <th className="px-8 py-4">User Details</th>
-                                        <th className="px-8 py-4">Status</th>
-                                        <th className="px-8 py-4">Quick Tests</th>
+                    {/* ===== DESKTOP: Table Layout ===== */}
+                    <div className="hidden md:block">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-900/50 text-slate-500 text-xs uppercase tracking-widest font-bold">
+                                <tr>
+                                    <th className="px-8 py-4">User Details</th>
+                                    <th className="px-8 py-4">Status</th>
+                                    <th className="px-8 py-4">Quick Tests</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800">
+                                {users.map((u) => (
+                                    <tr key={u._id} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-8 py-6">
+                                            <div className="font-bold text-white">{u.email}</div>
+                                            <div className="text-xs text-slate-500 mt-1 font-mono">{u.clerkId}</div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex gap-2">
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800 text-slate-500'}`}>
+                                                    Push ({u.pushSubscriptions?.length || 0})
+                                                </span>
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800 text-slate-500'}`}>
+                                                    Telegram
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex gap-3 items-center">
+                                                {/* Push Test Button */}
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => testPush(u._id)}
+                                                        disabled={!u.pushSubscriptions?.length || !!testLoading}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.pushSubscriptions?.length ? 'bg-slate-800 hover:bg-blue-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                                    >
+                                                        {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
+                                                        Test Push
+                                                    </button>
+                                                    {testStatuses[`push-${u._id}`] && (
+                                                        <span className={`
+                                                            animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
+                                                            ${testStatuses[`push-${u._id}`].type === 'success'
+                                                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                                            }
+                                                        `}>
+                                                            {testStatuses[`push-${u._id}`].type === 'success' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                                            {testStatuses[`push-${u._id}`].message}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Telegram Test Button */}
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => testTelegram(u.telegramChatId!, u._id)}
+                                                        disabled={!u.telegramChatId || !!testLoading}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.telegramChatId ? 'bg-slate-800 hover:bg-sky-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                                    >
+                                                        {testLoading === `tg-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
+                                                        Test TG
+                                                    </button>
+                                                    {testStatuses[`tg-${u._id}`] && (
+                                                        <span className={`
+                                                            animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
+                                                            ${testStatuses[`tg-${u._id}`].type === 'success'
+                                                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                                            }
+                                                        `}>
+                                                            {testStatuses[`tg-${u._id}`].type === 'success' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                                            {testStatuses[`tg-${u._id}`].message}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800">
-                                    {users.map((u) => (
-                                        <tr key={u._id} className="hover:bg-slate-800/30 transition-colors">
-                                            <td className="px-8 py-6">
-                                                <div className="font-bold text-white">{u.email}</div>
-                                                <div className="text-xs text-slate-500 mt-1 font-mono">{u.clerkId}</div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex gap-2">
-                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800 text-slate-500'}`}>
-                                                        Push ({u.pushSubscriptions?.length || 0})
-                                                    </span>
-                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800 text-slate-500'}`}>
-                                                        Telegram
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex gap-3 items-center">
-                                                    {/* Push Test Button */}
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => testPush(u._id)}
-                                                            disabled={!u.pushSubscriptions?.length || !!testLoading}
-                                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.pushSubscriptions?.length ? 'bg-slate-800 hover:bg-blue-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
-                                                        >
-                                                            {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
-                                                            Test Push
-                                                        </button>
-                                                        {testStatuses[`push-${u._id}`] && (
-                                                            <span className={`
-                                                                    animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
-                                                                    ${testStatuses[`push-${u._id}`].type === 'success'
-                                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                                }
-                                                                `}>
-                                                                {testStatuses[`push-${u._id}`].type === 'success' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                                                                {testStatuses[`push-${u._id}`].message}
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Telegram Test Button */}
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => testTelegram(u.telegramChatId!, u._id)}
-                                                            disabled={!u.telegramChatId || !!testLoading}
-                                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.telegramChatId ? 'bg-slate-800 hover:bg-sky-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
-                                                        >
-                                                            {testLoading === `tg-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
-                                                            Test TG
-                                                        </button>
-                                                        {testStatuses[`tg-${u._id}`] && (
-                                                            <span className={`
-                                                                    animate-fade-in px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1
-                                                                    ${testStatuses[`tg-${u._id}`].type === 'success'
-                                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                                }
-                                                                `}>
-                                                                {testStatuses[`tg-${u._id}`].type === 'success' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                                                                {testStatuses[`tg-${u._id}`].message}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {!loading && users.length === 0 && (
-                                        <tr>
-                                            <td colSpan={3} className="px-8 py-20 text-center text-slate-500 italic">
-                                                No users detected in the matrix.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                                {!loading && users.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="px-8 py-20 text-center text-slate-500 italic">
+                                            No users detected in the matrix.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
