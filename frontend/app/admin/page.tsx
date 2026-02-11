@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
 import axios from "axios";
 import Link from "next/link";
-import { Users, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle, ShieldAlert, X } from "lucide-react";
+import { Users, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle, ShieldAlert, X, Bell } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 
 // Toast notification types
@@ -277,7 +277,8 @@ export default function AdminPage() {
                     <div className="px-4 py-3 md:p-6 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
                         <h3 className="font-bold text-base md:text-xl flex items-center gap-2">
                             <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
-                            User Directory
+                            <span className="md:hidden">Members</span>
+                            <span className="hidden md:inline">User Directory</span>
                         </h3>
                         <button onClick={fetchUsers} disabled={loading} className="text-slate-400 hover:text-white transition-colors disabled:opacity-50">
                             {loading ? <Spinner size="sm" /> : <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />}
@@ -294,68 +295,99 @@ export default function AdminPage() {
 
                     {/* ===== MOBILE: Card Layout ===== */}
                     <div className="md:hidden divide-y divide-slate-800/50">
-                        {users.map((u) => (
-                            <div key={u._id} className="p-4 space-y-3">
-                                {/* User Info */}
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-sm text-white truncate">{u.email}</p>
-                                        <p className="text-[10px] text-slate-600 font-mono mt-0.5 truncate">{u.clerkId.slice(-8)}</p>
-                                    </div>
-                                    {/* Telegram indicator */}
-                                    {u.telegramChatId && (
-                                        <Send className="w-3.5 h-3.5 text-sky-400 flex-shrink-0 mt-1" />
-                                    )}
-                                </div>
+                        {users.map((u) => {
+                            const userName = u.email.split('@')[0].replace(/[._]/g, ' ');
+                            const initials = userName.split(' ').map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
+                            const hasPush = (u.pushSubscriptions?.length ?? 0) > 0;
+                            const hasTelegram = !!u.telegramChatId;
 
-                                {/* Status badges + Actions */}
-                                <div className="flex items-center justify-between gap-2">
-                                    {/* Status badges */}
-                                    <div className="flex gap-1.5">
-                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800/50 text-slate-600'}`}>
-                                            Push ({u.pushSubscriptions?.length || 0})
-                                        </span>
-                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800/50 text-slate-600'}`}>
-                                            TG
-                                        </span>
+                            return (
+                                <div key={u._id} className="p-4 space-y-3">
+                                    {/* User Info Row */}
+                                    <div className="flex items-center gap-3">
+                                        {/* Avatar */}
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600/30 to-purple-600/30 border border-white/10 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-xs font-bold text-white/80">{initials}</span>
+                                        </div>
+                                        {/* Name & Notification Status */}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-semibold text-sm text-white truncate capitalize">{userName}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                {/* Push status dot */}
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${hasPush ? 'bg-blue-400' : 'bg-slate-600'}`} />
+                                                    <span className={`text-[10px] ${hasPush ? 'text-blue-400' : 'text-slate-600'}`}>Notifications</span>
+                                                </div>
+                                                <span className="text-slate-700 text-[10px]">•</span>
+                                                {/* Telegram status dot */}
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${hasTelegram ? 'bg-sky-400' : 'bg-slate-600'}`} />
+                                                    <span className={`text-[10px] ${hasTelegram ? 'text-sky-400' : 'text-slate-600'}`}>Telegram</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Action buttons */}
-                                    <div className="flex gap-2 items-center">
-                                        {/* Push test */}
+                                    {/* Action Buttons Row */}
+                                    <div className="flex gap-2 pl-[52px]">
+                                        {/* Send Push Notification */}
                                         <button
                                             onClick={() => testPush(u._id)}
-                                            disabled={!u.pushSubscriptions?.length || !!testLoading}
-                                            className={`p-2 rounded-xl transition-all border disabled:opacity-20 ${u.pushSubscriptions?.length ? 'bg-slate-800 hover:bg-blue-500 border-slate-700 active:scale-95' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                            disabled={!hasPush || !!testLoading}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-all border text-xs font-semibold disabled:opacity-20 active:scale-[0.97]
+                                                ${hasPush
+                                                    ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
+                                                    : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                                                }
+                                                ${testStatuses[`push-${u._id}`]?.type === 'success' ? '!bg-green-500/10 !border-green-500/20 !text-green-400' : ''}
+                                                ${testStatuses[`push-${u._id}`]?.type === 'error' ? '!bg-red-500/10 !border-red-500/20 !text-red-400' : ''}
+                                            `}
                                         >
-                                            {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-3.5 h-3.5 text-blue-400" />}
+                                            {testLoading === `push-${u._id}` ? (
+                                                <Spinner size="sm" />
+                                            ) : testStatuses[`push-${u._id}`]?.type === 'success' ? (
+                                                <CheckCircle className="w-3.5 h-3.5" />
+                                            ) : testStatuses[`push-${u._id}`]?.type === 'error' ? (
+                                                <AlertCircle className="w-3.5 h-3.5" />
+                                            ) : (
+                                                <Bell className="w-3.5 h-3.5" />
+                                            )}
+                                            {testStatuses[`push-${u._id}`]?.type === 'success' ? 'Sent!' :
+                                                testStatuses[`push-${u._id}`]?.type === 'error' ? 'Failed' : 'Notify'}
                                         </button>
-                                        {testStatuses[`push-${u._id}`] && (
-                                            <span className={`animate-fade-in text-[10px] font-bold ${testStatuses[`push-${u._id}`].type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                                                {testStatuses[`push-${u._id}`].type === 'success' ? '✓' : '✗'}
-                                            </span>
-                                        )}
 
-                                        {/* Telegram test */}
+                                        {/* Send Telegram Message */}
                                         <button
                                             onClick={() => testTelegram(u.telegramChatId!, u._id)}
-                                            disabled={!u.telegramChatId || !!testLoading}
-                                            className={`p-2 rounded-xl transition-all border disabled:opacity-20 ${u.telegramChatId ? 'bg-slate-800 hover:bg-sky-500 border-slate-700 active:scale-95' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                            disabled={!hasTelegram || !!testLoading}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-all border text-xs font-semibold disabled:opacity-20 active:scale-[0.97]
+                                                ${hasTelegram
+                                                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20'
+                                                    : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                                                }
+                                                ${testStatuses[`tg-${u._id}`]?.type === 'success' ? '!bg-green-500/10 !border-green-500/20 !text-green-400' : ''}
+                                                ${testStatuses[`tg-${u._id}`]?.type === 'error' ? '!bg-red-500/10 !border-red-500/20 !text-red-400' : ''}
+                                            `}
                                         >
-                                            {testLoading === `tg-${u._id}` ? <Spinner size="sm" /> : <Send className="w-3.5 h-3.5 text-sky-400" />}
+                                            {testLoading === `tg-${u._id}` ? (
+                                                <Spinner size="sm" />
+                                            ) : testStatuses[`tg-${u._id}`]?.type === 'success' ? (
+                                                <CheckCircle className="w-3.5 h-3.5" />
+                                            ) : testStatuses[`tg-${u._id}`]?.type === 'error' ? (
+                                                <AlertCircle className="w-3.5 h-3.5" />
+                                            ) : (
+                                                <Send className="w-3.5 h-3.5" />
+                                            )}
+                                            {testStatuses[`tg-${u._id}`]?.type === 'success' ? 'Sent!' :
+                                                testStatuses[`tg-${u._id}`]?.type === 'error' ? 'Failed' : 'Message'}
                                         </button>
-                                        {testStatuses[`tg-${u._id}`] && (
-                                            <span className={`animate-fade-in text-[10px] font-bold ${testStatuses[`tg-${u._id}`].type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                                                {testStatuses[`tg-${u._id}`].type === 'success' ? '✓' : '✗'}
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {!loading && users.length === 0 && (
-                            <div className="px-4 py-16 text-center text-slate-500 text-sm italic">
-                                No users detected in the matrix.
+                            <div className="px-4 py-16 text-center text-slate-500 text-sm">
+                                No members yet
                             </div>
                         )}
                     </div>
