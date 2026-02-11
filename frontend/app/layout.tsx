@@ -31,6 +31,14 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
+        <head>
+          {/* Apple PWA meta tags */}
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-title" content="CReminder" />
+          <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+          <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
+        </head>
         <body className={`${inter.variable} ${outfit.variable} font-sans bg-slate-950 text-slate-100 antialiased overflow-x-hidden`} suppressHydrationWarning>
           <div className="relative min-h-screen flex flex-col">
             {/* Background elements for premium look */}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'contest-reminder-v4';
+const CACHE_NAME = 'contest-reminder-v5';
 const urlsToCache = [
     '/',
     '/settings',
