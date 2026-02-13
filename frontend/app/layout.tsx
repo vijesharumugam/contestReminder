@@ -33,6 +33,7 @@ export default function RootLayout({
       <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
         <head>
           {/* Apple PWA meta tags */}
+          <meta name="google-site-verification" content="CoH6zg1MA-L_yzB3cKznqINWDumy437hAHyVODOKMJo" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <meta name="apple-mobile-web-app-title" content="CReminder" />
