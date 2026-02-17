@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { UserButton, useUser, SignInButton } from "@clerk/nextjs";
-import { Trophy, Bell, Menu, X, Lock, Home, Settings, Shield } from "lucide-react";
+import { Home, Settings, Shield } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const Navbar = () => {
     const { isLoaded, isSignedIn, user } = useUser();
-    const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const pathname = usePathname();
 
@@ -58,8 +58,9 @@ const Navbar = () => {
                         <div className="relative">
                             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
                             <div className="relative bg-card p-1.5 rounded-lg group-hover:scale-110 transition-transform border border-border/10">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/icon.png" alt="Logo" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
+                                <div className="relative w-5 h-5 md:w-6 md:h-6">
+                                    <Image src="/icon.png" alt="Logo" fill className="object-contain" sizes="24px" />
+                                </div>
                             </div>
                         </div>
                         <span className="font-outfit font-bold text-lg md:text-xl tracking-tight">

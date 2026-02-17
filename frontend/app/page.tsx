@@ -5,6 +5,7 @@ import api from "@/lib/api";
 import ContestCard from "@/components/ContestCard";
 import { Filter, Trophy } from "lucide-react";
 import { useUserSync } from "@/hooks/useUserSync";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 
 interface Contest {
   _id: string;
@@ -17,6 +18,7 @@ interface Contest {
 
 export default function Home() {
   useUserSync();
+  const { isSignedIn } = useUser();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
@@ -41,7 +43,22 @@ export default function Home() {
   }, [filter]);
 
   return (
-    <div className="space-y-12 md:space-y-24 pb-4 md:pb-20">
+    <div className="space-y-6 md:space-y-12 pb-4 md:pb-20">
+      {/* Top Header with Auth */}
+      <div className="flex justify-end py-2">
+        {!isSignedIn ? (
+          <SignInButton mode="modal">
+            <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 active:scale-95 text-sm">
+              Sign In
+            </button>
+          </SignInButton>
+        ) : (
+          <div className="bg-muted/50 p-1.5 rounded-full border border-border">
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        )}
+      </div>
+
       {/* Hero Section */}
 
 

@@ -4,15 +4,26 @@ import { useState, useEffect, useRef } from "react";
 import { Download, X, Share } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[];
+    readonly userChoice: Promise<{
+        outcome: 'accepted' | 'dismissed';
+        platform: string;
+    }>;
+    prompt(): Promise<void>;
+}
+
 export default function InstallPrompt() {
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
     const isDismissed = useRef(false);
 
     useEffect(() => {
         // Check if iOS (since iOS doesn't support beforeinstallprompt)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
 
         if (isIosDevice && !isStandalone) {
@@ -20,15 +31,18 @@ export default function InstallPrompt() {
             // We'll show this once per session or use local storage to limit frequency
             const hasSeenPrompt = sessionStorage.getItem('iosInstallPromptSeen');
             if (!hasSeenPrompt) {
-                setIsIOS(true);
-                setShowPrompt(true);
+                // Defer state update to avoid synchronous cascading render warning
+                setTimeout(() => {
+                    setIsIOS(true);
+                    setShowPrompt(true);
+                }, 0);
             }
         }
 
         // Standard PWA install prompt for Android/Desktop
         const handler = (e: Event) => {
             e.preventDefault();
-            setDeferredPrompt(e);
+            setDeferredPrompt(e as BeforeInstallPromptEvent);
 
             // Only show if user hasn't dismissed it in this session
             if (!isDismissed.current) {

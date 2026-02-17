@@ -62,7 +62,7 @@ self.addEventListener('push', (event) => {
     try {
         data = event.data.json();
         console.log('[SW] Push data:', JSON.stringify(data));
-    } catch (e) {
+    } catch {
         console.log('[SW] Failed to parse push data as JSON, using text');
         data = {
             title: 'Contest Reminder',

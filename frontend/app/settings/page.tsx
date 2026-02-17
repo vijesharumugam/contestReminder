@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import api from "@/lib/api";
-import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, ChevronRight, Zap, BellRing, BellOff, Smartphone } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, Zap, BellRing, BellOff, Smartphone } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";

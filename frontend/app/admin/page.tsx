@@ -8,6 +8,8 @@ import Link from "next/link";
 import { Users, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle, ShieldAlert, X, Bell } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
+
 // Toast notification types
 interface Toast {
     id: string;
@@ -30,7 +32,7 @@ interface User {
     clerkId: string;
     email: string;
     telegramChatId?: string;
-    pushSubscriptions?: any[];
+    pushSubscriptions?: unknown[];
     preferences: {
         push?: boolean;
         telegram: boolean;
@@ -44,9 +46,9 @@ export default function AdminPage() {
     const [error, setError] = useState("");
     const [testLoading, setTestLoading] = useState<string | null>(null);
     const [toasts, setToasts] = useState<Toast[]>([]);
-    const [testStatuses, setTestStatuses] = useState<TestStatus>({});
 
-    const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
+
+    const [testStatuses, setTestStatuses] = useState<TestStatus>({});
     const isAdmin = useMemo(() => {
         return isLoaded && isSignedIn && user?.primaryEmailAddress?.emailAddress === ADMIN_EMAIL;
     }, [isLoaded, isSignedIn, user]);

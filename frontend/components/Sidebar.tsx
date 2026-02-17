@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { UserButton, useUser, SignInButton, useClerk } from "@clerk/nextjs";
 import {
@@ -27,7 +28,9 @@ const Sidebar = () => {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        // Use timeout to avoid synchronous state update warning during hydration mismatch check
+        const timer = setTimeout(() => setMounted(true), 0);
+        return () => clearTimeout(timer);
     }, []);
 
     const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
@@ -54,17 +57,8 @@ const Sidebar = () => {
         setTheme(theme === "dark" ? "light" : "dark");
     };
 
-    // Prevent hydration mismatch for theme icons
-    const ThemeIcon = () => {
-        if (!mounted) return <div className="w-6 h-6" />; // Placeholder
-        return theme === "dark" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />;
-    };
-
-    // For mobile
-    const MobileThemeIcon = () => {
-        if (!mounted) return <div className="w-5 h-5" />; // Placeholder
-        return theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />;
-    };
+    const themeIcon = !mounted ? <div className="w-6 h-6" /> : (theme === "dark" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />);
+    const mobileThemeIcon = !mounted ? <div className="w-5 h-5" /> : (theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />);
 
     return (
         <>
@@ -74,7 +68,9 @@ const Sidebar = () => {
                 <div className="mb-8">
                     <Link href="/" className="group relative flex items-center justify-center">
                         <div className="absolute -inset-3 bg-blue-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                        <img src="/icon.png" alt="Logo" className="w-10 h-10 object-contain relative z-10 drop-shadow-lg" />
+                        <div className="relative w-10 h-10">
+                            <Image src="/icon.png" alt="Logo" fill className="object-contain drop-shadow-lg" sizes="40px" />
+                        </div>
                     </Link>
                 </div>
 
@@ -119,7 +115,7 @@ const Sidebar = () => {
                         className="w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
                         title="Toggle Theme"
                     >
-                        <ThemeIcon />
+                        {themeIcon}
                     </button>
 
                     <button className="w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" title="Leaderboard">
@@ -199,11 +195,13 @@ const Sidebar = () => {
                         className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all border border-border/50"
                         title="Toggle Theme"
                     >
-                        <MobileThemeIcon />
+                        {mobileThemeIcon}
                     </button>
 
                     <Link href="/" className="flex items-center gap-2">
-                        <img src="/icon.png" alt="Logo" className="w-8 h-8 object-contain" />
+                        <div className="relative w-8 h-8">
+                            <Image src="/icon.png" alt="Logo" fill className="object-contain" sizes="32px" />
+                        </div>
                         <span className="font-outfit font-bold text-lg tracking-tight text-foreground">
                             Contest<span className="text-primary">Remind</span>
                         </span>
