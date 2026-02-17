@@ -110,7 +110,8 @@ const fetchAndSaveContests = async () => {
                 resource_id__in: resourceIds.join(','),
                 start__gt: now,
                 order_by: 'start',
-                limit: 50 // Fetch enough logic
+                // Increase limit to capture all platforms, especially CodeChef 
+                limit: 200
             }
         });
 
@@ -132,6 +133,8 @@ const fetchAndSaveContests = async () => {
                 }
             }
 
+
+
             const contestData = {
                 externalId: c.id,
                 name: c.event,
@@ -152,6 +155,7 @@ const fetchAndSaveContests = async () => {
                 await Contest.updateOne({ externalId: c.id }, contestData);
             }
         }
+
         console.log(`Fetched ${contests.length} contests. Added ${newCount} new.`);
 
     } catch (error) {
