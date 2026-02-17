@@ -170,8 +170,8 @@ export default function AdminPage() {
                         <Lock className="w-8 h-8 text-blue-500" />
                     </div>
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-bold font-outfit">Admin Portal</h1>
-                        <p className="text-slate-400">Please sign in to access the master dashboard.</p>
+                        <h1 className="text-3xl font-bold font-outfit text-foreground">Admin Portal</h1>
+                        <p className="text-muted-foreground text-sm">Please sign in to access the master dashboard.</p>
                     </div>
                     <SignInButton mode="modal">
                         <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/25">
@@ -260,10 +260,10 @@ export default function AdminPage() {
                                 <LayoutDashboard className="w-6 h-6 md:w-8 md:h-8 text-blue-500" />
                                 Dashboard
                             </h1>
-                            <p className="text-slate-500 text-xs md:text-base">{users.length} active users</p>
+                            <p className="text-muted-foreground text-xs md:text-base">{users.length} active users</p>
                         </div>
-                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-green-400 text-[10px] md:text-sm font-medium">
-                            <CheckCircle className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                        <div className="flex items-center gap-1.5 md:gap-2 bg-green-500/10 border border-green-500/20 px-2 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-green-400 text-[10px] md:text-xs font-medium">
+                            <CheckCircle className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
                             <span className="truncate max-w-[200px] md:max-w-none">Admin: {user?.primaryEmailAddress?.emailAddress}</span>
                         </div>
                     </div>
@@ -271,13 +271,13 @@ export default function AdminPage() {
 
                 {/* User Directory */}
                 <div className="glass rounded-2xl md:rounded-3xl overflow-hidden border-blue-500/10">
-                    <div className="px-4 py-3 md:p-6 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                        <h3 className="font-bold text-base md:text-xl flex items-center gap-2">
-                            <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
+                    <div className="px-4 py-3 md:p-5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                        <h3 className="font-bold text-base md:text-lg flex items-center gap-2">
+                            <Users className="w-4 h-4 text-blue-500" />
                             <span className="md:hidden">Members</span>
                             <span className="hidden md:inline">User Directory</span>
                         </h3>
-                        <button onClick={fetchUsers} disabled={loading} className="text-slate-400 hover:text-white transition-colors disabled:opacity-50">
+                        <button onClick={fetchUsers} disabled={loading} className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
                             {loading ? <Spinner size="sm" /> : <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />}
                         </button>
                     </div>
@@ -291,7 +291,7 @@ export default function AdminPage() {
                     )}
 
                     {/* ===== MOBILE: Card Layout ===== */}
-                    <div className="md:hidden divide-y divide-slate-800/50">
+                    <div className="md:hidden divide-y divide-border/50">
                         {users.map((u) => {
                             const userName = u.email.split('@')[0].replace(/[._]/g, ' ');
                             const initials = userName.split(' ').map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
@@ -303,38 +303,37 @@ export default function AdminPage() {
                                     {/* User Info Row */}
                                     <div className="flex items-center gap-3">
                                         {/* Avatar */}
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600/30 to-purple-600/30 border border-white/10 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-xs font-bold text-white/80">{initials}</span>
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600/30 to-purple-600/30 border border-border flex items-center justify-center flex-shrink-0 text-primary">
+                                            <span className="text-xs font-bold">{initials}</span>
                                         </div>
                                         {/* Name & Notification Status */}
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold text-sm text-white truncate capitalize">{userName}</p>
+                                            <p className="font-semibold text-sm text-foreground truncate capitalize">{userName}</p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 {/* Push status dot */}
                                                 <div className="flex items-center gap-1">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${hasPush ? 'bg-blue-400' : 'bg-slate-600'}`} />
-                                                    <span className={`text-[10px] ${hasPush ? 'text-blue-400' : 'text-slate-600'}`}>Notifications</span>
+                                                    <div className={`w-1 h-1 rounded-full ${hasPush ? 'bg-blue-400' : 'bg-muted-foreground'}`} />
+                                                    <span className={`text-[9px] ${hasPush ? 'text-blue-400' : 'text-muted-foreground'}`}>Notifications</span>
                                                 </div>
-                                                <span className="text-slate-700 text-[10px]">•</span>
+                                                <span className="text-muted-foreground text-[9px]">•</span>
                                                 {/* Telegram status dot */}
                                                 <div className="flex items-center gap-1">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${hasTelegram ? 'bg-sky-400' : 'bg-slate-600'}`} />
-                                                    <span className={`text-[10px] ${hasTelegram ? 'text-sky-400' : 'text-slate-600'}`}>Telegram</span>
+                                                    <div className={`w-1 h-1 rounded-full ${hasTelegram ? 'bg-sky-400' : 'bg-muted-foreground'}`} />
+                                                    <span className={`text-[9px] ${hasTelegram ? 'text-sky-400' : 'text-muted-foreground'}`}>Telegram</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Action Buttons Row */}
                                     <div className="flex gap-2 pl-[52px]">
                                         {/* Send Push Notification */}
                                         <button
                                             onClick={() => testPush(u._id)}
                                             disabled={!hasPush || !!testLoading}
-                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-all border text-xs font-semibold disabled:opacity-20 active:scale-[0.97]
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all border text-[10px] font-semibold disabled:opacity-20 active:scale-[0.97]
                                                 ${hasPush
                                                     ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
-                                                    : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                                                    : 'bg-muted border-border text-muted-foreground cursor-not-allowed'
                                                 }
                                                 ${testStatuses[`push-${u._id}`]?.type === 'success' ? '!bg-green-500/10 !border-green-500/20 !text-green-400' : ''}
                                                 ${testStatuses[`push-${u._id}`]?.type === 'error' ? '!bg-red-500/10 !border-red-500/20 !text-red-400' : ''}
@@ -343,11 +342,11 @@ export default function AdminPage() {
                                             {testLoading === `push-${u._id}` ? (
                                                 <Spinner size="sm" />
                                             ) : testStatuses[`push-${u._id}`]?.type === 'success' ? (
-                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                <CheckCircle className="w-3 h-3" />
                                             ) : testStatuses[`push-${u._id}`]?.type === 'error' ? (
-                                                <AlertCircle className="w-3.5 h-3.5" />
+                                                <AlertCircle className="w-3 h-3" />
                                             ) : (
-                                                <Bell className="w-3.5 h-3.5" />
+                                                <Bell className="w-3 h-3" />
                                             )}
                                             {testStatuses[`push-${u._id}`]?.type === 'success' ? 'Sent!' :
                                                 testStatuses[`push-${u._id}`]?.type === 'error' ? 'Failed' : 'Notify'}
@@ -357,10 +356,10 @@ export default function AdminPage() {
                                         <button
                                             onClick={() => testTelegram(u.telegramChatId!, u._id)}
                                             disabled={!hasTelegram || !!testLoading}
-                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition-all border text-xs font-semibold disabled:opacity-20 active:scale-[0.97]
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all border text-[10px] font-semibold disabled:opacity-20 active:scale-[0.97]
                                                 ${hasTelegram
                                                     ? 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20'
-                                                    : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                                                    : 'bg-muted border-border text-muted-foreground cursor-not-allowed'
                                                 }
                                                 ${testStatuses[`tg-${u._id}`]?.type === 'success' ? '!bg-green-500/10 !border-green-500/20 !text-green-400' : ''}
                                                 ${testStatuses[`tg-${u._id}`]?.type === 'error' ? '!bg-red-500/10 !border-red-500/20 !text-red-400' : ''}
@@ -369,11 +368,11 @@ export default function AdminPage() {
                                             {testLoading === `tg-${u._id}` ? (
                                                 <Spinner size="sm" />
                                             ) : testStatuses[`tg-${u._id}`]?.type === 'success' ? (
-                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                <CheckCircle className="w-3 h-3" />
                                             ) : testStatuses[`tg-${u._id}`]?.type === 'error' ? (
-                                                <AlertCircle className="w-3.5 h-3.5" />
+                                                <AlertCircle className="w-3 h-3" />
                                             ) : (
-                                                <Send className="w-3.5 h-3.5" />
+                                                <Send className="w-3 h-3" />
                                             )}
                                             {testStatuses[`tg-${u._id}`]?.type === 'success' ? 'Sent!' :
                                                 testStatuses[`tg-${u._id}`]?.type === 'error' ? 'Failed' : 'Message'}
@@ -383,7 +382,7 @@ export default function AdminPage() {
                             );
                         })}
                         {!loading && users.length === 0 && (
-                            <div className="px-4 py-16 text-center text-slate-500 text-sm">
+                            <div className="px-4 py-16 text-center text-muted-foreground text-sm">
                                 No members yet
                             </div>
                         )}
@@ -392,26 +391,26 @@ export default function AdminPage() {
                     {/* ===== DESKTOP: Table Layout ===== */}
                     <div className="hidden md:block">
                         <table className="w-full text-left">
-                            <thead className="bg-slate-900/50 text-slate-500 text-xs uppercase tracking-widest font-bold">
+                            <thead className="bg-muted/50 text-muted-foreground text-xs uppercase tracking-widest font-bold">
                                 <tr>
                                     <th className="px-8 py-4">User Details</th>
                                     <th className="px-8 py-4">Status</th>
                                     <th className="px-8 py-4">Quick Tests</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800">
+                            <tbody className="divide-y divide-border">
                                 {users.map((u) => (
-                                    <tr key={u._id} className="hover:bg-slate-800/30 transition-colors">
+                                    <tr key={u._id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-8 py-6">
-                                            <div className="font-bold text-white">{u.email}</div>
-                                            <div className="text-xs text-slate-500 mt-1 font-mono">{u.clerkId}</div>
+                                            <div className="font-bold text-foreground">{u.email}</div>
+                                            <div className="text-xs text-muted-foreground mt-1 font-mono">{u.clerkId}</div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex gap-2">
-                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800 text-slate-500'}`}>
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-muted text-muted-foreground'}`}>
                                                     Push ({u.pushSubscriptions?.length || 0})
                                                 </span>
-                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-slate-800 text-slate-500'}`}>
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-muted text-muted-foreground'}`}>
                                                     Telegram
                                                 </span>
                                             </div>
@@ -423,7 +422,7 @@ export default function AdminPage() {
                                                     <button
                                                         onClick={() => testPush(u._id)}
                                                         disabled={!u.pushSubscriptions?.length || !!testLoading}
-                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.pushSubscriptions?.length ? 'bg-slate-800 hover:bg-blue-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.pushSubscriptions?.length ? 'bg-muted hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20 border-border' : 'bg-muted border-border cursor-not-allowed'}`}
                                                     >
                                                         {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
                                                         Test Push
@@ -447,7 +446,7 @@ export default function AdminPage() {
                                                     <button
                                                         onClick={() => testTelegram(u.telegramChatId!, u._id)}
                                                         disabled={!u.telegramChatId || !!testLoading}
-                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.telegramChatId ? 'bg-slate-800 hover:bg-sky-500 border-slate-700' : 'bg-slate-900 border-slate-800 cursor-not-allowed'}`}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.telegramChatId ? 'bg-muted hover:bg-sky-500/10 hover:text-sky-500 hover:border-sky-500/20 border-border' : 'bg-muted border-border cursor-not-allowed'}`}
                                                     >
                                                         {testLoading === `tg-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
                                                         Test TG
@@ -471,7 +470,7 @@ export default function AdminPage() {
                                 ))}
                                 {!loading && users.length === 0 && (
                                     <tr>
-                                        <td colSpan={3} className="px-8 py-20 text-center text-slate-500 italic">
+                                        <td colSpan={3} className="px-8 py-20 text-center text-muted-foreground italic">
                                             No users detected in the matrix.
                                         </td>
                                     </tr>

@@ -211,8 +211,8 @@ export default function SettingsPage() {
                     </div>
                     <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase text-blue-400">Notifications</span>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-bold font-outfit">Settings</h1>
-                <p className="text-slate-500 text-xs md:text-sm">Choose how you want to receive contest reminders</p>
+                <h1 className="text-2xl md:text-3xl font-bold font-outfit text-foreground">Settings</h1>
+                <p className="text-muted-foreground text-xs md:text-sm">Choose how you want to receive contest reminders</p>
             </motion.div>
 
             {/* ======= PRIMARY: Push Notifications ======= */}
@@ -223,18 +223,18 @@ export default function SettingsPage() {
                 className="glass rounded-2xl md:rounded-3xl overflow-hidden"
             >
                 {/* Header */}
-                <div className="relative px-4 md:px-6 py-4 md:py-5 bg-gradient-to-r from-blue-600/20 via-indigo-600/15 to-purple-600/20 border-b border-white/5">
+                <div className="relative px-4 md:px-5 py-3 md:py-4 bg-gradient-to-r from-blue-600/20 via-indigo-600/15 to-purple-600/20 border-b border-white/5">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-500/25 p-2 md:p-2.5 rounded-xl border border-blue-500/20">
-                                <BellRing className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                            <div className="bg-blue-500/25 p-1.5 md:p-2 rounded-lg md:rounded-xl border border-blue-500/20">
+                                <BellRing className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-400" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-sm md:text-base text-white">Push Notifications</h3>
+                                    <h3 className="font-bold text-sm md:text-base text-foreground">Push Notifications</h3>
                                     <span className="text-[8px] md:text-[9px] font-black tracking-widest uppercase bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full border border-blue-500/20">Primary</span>
                                 </div>
-                                <p className="text-[10px] md:text-xs text-blue-300/60">Native app-like notifications</p>
+                                <p className="text-[10px] md:text-xs text-blue-300/60 dark:text-blue-300/60 text-blue-600/60 leading-tight">Native app-like notifications</p>
                             </div>
                         </div>
                     </div>
@@ -256,19 +256,19 @@ export default function SettingsPage() {
                         </div>
                     ) : !isPushEnabled ? (
                         <div className="space-y-4">
-                            <div className="text-center space-y-2 py-2">
-                                <div className="w-14 h-14 md:w-16 md:h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto border border-blue-500/15">
-                                    <Smartphone className="w-7 h-7 md:w-8 md:h-8 text-blue-400" />
+                            <div className="text-center space-y-1.5 py-2">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto border border-blue-500/15">
+                                    <Smartphone className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
                                 </div>
-                                <p className="text-sm md:text-base font-semibold text-white">Enable Push Notifications</p>
-                                <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                                <p className="text-sm font-semibold text-foreground">Enable Push Notifications</p>
+                                <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
                                     Get native notifications for daily digests and contest reminders — just like a real app.
                                 </p>
                             </div>
                             <button
                                 onClick={enablePushNotifications}
                                 disabled={subscribingPush}
-                                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/20 text-sm md:text-base active:scale-[0.98] disabled:opacity-50"
+                                className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-primary/20 text-sm md:text-base active:scale-[0.98] disabled:opacity-50"
                             >
                                 {subscribingPush ? (
                                     <Spinner size="sm" />
@@ -289,23 +289,23 @@ export default function SettingsPage() {
 
                             {/* Active features */}
                             <div className="space-y-2">
-                                <div className="flex items-center gap-3 p-2.5 md:p-3 rounded-xl bg-white/5">
-                                    <div className="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <Sparkles className="w-4 h-4 text-blue-400" />
+                                <div className="flex items-center gap-2.5 p-2 md:p-2.5 rounded-xl bg-muted/50">
+                                    <div className="w-7 h-7 bg-blue-500/15 rounded-md flex items-center justify-center flex-shrink-0">
+                                        <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-xs md:text-sm font-semibold text-white">Daily Digest</p>
-                                        <p className="text-[10px] md:text-xs text-slate-500">Every morning at 8:00 AM IST</p>
+                                        <p className="text-xs md:text-sm font-semibold text-foreground">Daily Digest</p>
+                                        <p className="text-[10px] text-muted-foreground">Every morning at 8:00 AM IST</p>
                                     </div>
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                 </div>
-                                <div className="flex items-center gap-3 p-2.5 md:p-3 rounded-xl bg-white/5">
-                                    <div className="w-8 h-8 bg-purple-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <Clock className="w-4 h-4 text-purple-400" />
+                                <div className="flex items-center gap-2.5 p-2 md:p-2.5 rounded-xl bg-muted/50">
+                                    <div className="w-7 h-7 bg-purple-500/15 rounded-md flex items-center justify-center flex-shrink-0">
+                                        <Clock className="w-3.5 h-3.5 text-purple-400" />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-xs md:text-sm font-semibold text-white">30-Min Reminders</p>
-                                        <p className="text-[10px] md:text-xs text-slate-500">Alert before contest starts</p>
+                                        <p className="text-xs md:text-sm font-semibold text-foreground">30-Min Reminders</p>
+                                        <p className="text-[10px] md:text-xs text-muted-foreground">Alert before contest starts</p>
                                     </div>
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                 </div>
@@ -316,7 +316,7 @@ export default function SettingsPage() {
                             <button
                                 onClick={disablePushNotifications}
                                 disabled={subscribingPush}
-                                className="flex items-center justify-center gap-2 w-full text-slate-400 hover:text-red-400 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 text-xs md:text-sm hover:bg-red-500/5 active:scale-[0.98]"
+                                className="flex items-center justify-center gap-2 w-full text-muted-foreground hover:text-destructive py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 text-xs md:text-sm hover:bg-destructive/5 active:scale-[0.98]"
                             >
                                 {subscribingPush ? <Spinner size="sm" /> : <BellOff className="w-3.5 h-3.5" />}
                                 Disable Push Notifications
@@ -334,18 +334,18 @@ export default function SettingsPage() {
                 className="glass rounded-2xl md:rounded-3xl overflow-hidden"
             >
                 {/* Header */}
-                <div className="relative px-4 md:px-6 py-4 md:py-5 bg-gradient-to-r from-sky-600/15 via-cyan-600/10 to-teal-600/15 border-b border-white/5">
+                <div className="relative px-4 md:px-5 py-3 md:py-4 bg-gradient-to-r from-sky-600/15 via-cyan-600/10 to-teal-600/15 border-b border-white/5">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-sky-500/25 p-2 md:p-2.5 rounded-xl border border-sky-500/20">
-                                <Send className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                            <div className="bg-sky-500/25 p-1.5 md:p-2 rounded-lg md:rounded-xl border border-sky-500/20">
+                                <Send className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-400" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-sm md:text-base text-white">Telegram</h3>
-                                    <span className="text-[8px] md:text-[9px] font-black tracking-widest uppercase bg-slate-500/20 text-slate-400 px-1.5 py-0.5 rounded-full border border-slate-500/20">Optional</span>
+                                    <h3 className="font-bold text-sm md:text-base text-foreground">Telegram</h3>
+                                    <span className="text-[8px] md:text-[9px] font-black tracking-widest uppercase bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full border border-border">Optional</span>
                                 </div>
-                                <p className="text-[10px] md:text-xs text-sky-300/60">Get reminders on Telegram too</p>
+                                <p className="text-[10px] md:text-xs text-sky-300/60 dark:text-sky-300/60 text-sky-600/60 leading-tight">Get reminders on Telegram too</p>
                             </div>
                         </div>
                         {isTelegramConnected && (
@@ -372,24 +372,24 @@ export default function SettingsPage() {
                 <div className="p-4 md:p-6">
                     {!isTelegramConnected ? (
                         <div className="space-y-4">
-                            <div className="text-center space-y-2 py-2">
-                                <div className="w-14 h-14 md:w-16 md:h-16 bg-sky-500/10 rounded-2xl flex items-center justify-center mx-auto border border-sky-500/15">
-                                    <MessageSquare className="w-7 h-7 md:w-8 md:h-8 text-sky-400" />
+                            <div className="text-center space-y-1.5 py-2">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-sky-500/10 rounded-xl flex items-center justify-center mx-auto border border-sky-500/15">
+                                    <MessageSquare className="w-5 h-5 md:w-6 md:h-6 text-sky-400" />
                                 </div>
-                                <p className="text-sm md:text-base font-semibold text-white">Connect Telegram</p>
-                                <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                                <p className="text-sm font-semibold text-foreground">Connect Telegram</p>
+                                <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
                                     Also get contest reminders on Telegram as a backup channel.
                                 </p>
                             </div>
                             <a
                                 href={telegramLink}
                                 target="_blank"
-                                className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 text-sm md:text-base active:scale-[0.98]"
+                                className="flex items-center justify-center gap-2 w-full bg-sky-500 hover:bg-sky-600 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 text-sm md:text-base active:scale-[0.98]"
                             >
                                 <Send className="w-4 h-4" />
                                 Connect Telegram
                             </a>
-                            <p className="text-[9px] md:text-[10px] text-center text-slate-600 uppercase tracking-widest font-bold">
+                            <p className="text-[9px] md:text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold">
                                 Opens Telegram App · Press /start
                             </p>
                         </div>
@@ -398,8 +398,8 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/15 p-3 rounded-xl">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                                 <span className="text-xs md:text-sm text-emerald-400 font-medium">Connected</span>
-                                <span className="ml-auto text-[10px] text-slate-500 font-mono">{userData?.telegramChatId}</span>
-                                <button onClick={fetchUserStatus} className="p-1 text-slate-400 hover:text-white">
+                                <span className="ml-auto text-[10px] text-muted-foreground font-mono">{userData?.telegramChatId}</span>
+                                <button onClick={fetchUserStatus} className="p-1 text-muted-foreground hover:text-foreground">
                                     <RefreshCw className="w-3 h-3" />
                                 </button>
                             </div>
@@ -409,7 +409,7 @@ export default function SettingsPage() {
                             <button
                                 onClick={disconnectTelegram}
                                 disabled={disconnecting}
-                                className="flex items-center justify-center gap-2 w-full text-slate-400 hover:text-red-400 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 text-xs md:text-sm hover:bg-red-500/5 active:scale-[0.98]"
+                                className="flex items-center justify-center gap-2 w-full text-muted-foreground hover:text-destructive py-2.5 rounded-xl font-medium transition-all disabled:opacity-50 text-xs md:text-sm hover:bg-destructive/5 active:scale-[0.98]"
                             >
                                 {disconnecting ? <Spinner size="sm" /> : <Unlink className="w-3.5 h-3.5" />}
                                 Disconnect Telegram
@@ -427,8 +427,8 @@ export default function SettingsPage() {
                 className="space-y-2 md:space-y-3"
             >
                 <div className="flex items-center gap-2 px-1">
-                    <Zap className="w-3.5 h-3.5 text-blue-500" />
-                    <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase text-slate-500">What You Get</span>
+                    <Zap className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase text-muted-foreground">What You Get</span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 md:gap-3">
@@ -452,7 +452,7 @@ export default function SettingsPage() {
                             desc: "Push notifications work like a native app. Telegram is optional backup.",
                         },
                     ].map((feature, i) => (
-                        <div key={i} className="flex items-start gap-3 glass p-3 md:p-4 rounded-xl md:rounded-2xl border-white/5">
+                        <div key={i} className="flex items-start gap-3 glass p-3 md:p-4 rounded-xl md:rounded-2xl border-border">
                             <div className={cn(
                                 "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5",
                                 feature.color === "blue" && "bg-blue-500/15",
@@ -467,8 +467,8 @@ export default function SettingsPage() {
                                 )} />
                             </div>
                             <div>
-                                <p className="text-xs md:text-sm font-bold text-white">{feature.title}</p>
-                                <p className="text-[10px] md:text-xs text-slate-500 leading-relaxed mt-0.5">{feature.desc}</p>
+                                <p className="text-xs md:text-sm font-bold text-foreground">{feature.title}</p>
+                                <p className="text-[10px] md:text-xs text-muted-foreground leading-relaxed mt-0.5">{feature.desc}</p>
                             </div>
                         </div>
                     ))}

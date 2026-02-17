@@ -5,16 +5,16 @@ export default function Page() {
         <div className="flex items-center justify-center py-10">
             <SignIn appearance={{
                 elements: {
-                    formButtonPrimary: "bg-blue-600 hover:bg-blue-500 text-sm normal-case",
-                    card: "bg-slate-900 border border-slate-800",
-                    headerTitle: "text-white font-outfit",
-                    headerSubtitle: "text-slate-400 font-sans",
-                    socialButtonsBlockButton: "bg-slate-800 border-slate-700 text-white hover:bg-slate-700",
-                    socialButtonsBlockButtonText: "text-white font-medium",
-                    formFieldLabel: "text-slate-300",
-                    formFieldInput: "bg-slate-800 border-slate-700 text-white",
-                    footerActionText: "text-slate-400",
-                    footerActionLink: "text-blue-500 hover:text-blue-400"
+                    formButtonPrimary: "bg-primary hover:bg-primary/90 text-sm normal-case text-primary-foreground",
+                    card: "bg-card border border-border shadow-lg",
+                    headerTitle: "text-foreground font-outfit",
+                    headerSubtitle: "text-muted-foreground font-sans",
+                    socialButtonsBlockButton: "bg-muted border-border text-foreground hover:bg-muted/80",
+                    socialButtonsBlockButtonText: "text-foreground font-medium",
+                    formFieldLabel: "text-muted-foreground",
+                    formFieldInput: "bg-input border-border text-foreground",
+                    footerActionText: "text-muted-foreground",
+                    footerActionLink: "text-primary hover:text-primary/80"
                 }
             }} />
         </div>
