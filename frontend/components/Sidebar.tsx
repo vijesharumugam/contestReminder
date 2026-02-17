@@ -14,7 +14,8 @@ import {
     Trophy,
     HelpCircle,
     Sun,
-    Moon
+    Moon,
+    User as UserIcon
 } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -152,8 +153,8 @@ const Sidebar = () => {
                         </div>
                     ) : (
                         <SignInButton mode="modal">
-                            <button className="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-lg shadow-primary/20 group">
-                                <LogIn className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+                            <button className="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-lg shadow-primary/20 group" title="Sign In">
+                                <UserIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             </button>
                         </SignInButton>
                     )}
