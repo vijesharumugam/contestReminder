@@ -64,6 +64,7 @@ if (token) {
                                     day: 'numeric',
                                     hour: '2-digit',
                                     minute: '2-digit',
+                                    timeZone: 'Asia/Kolkata',
                                     timeZoneName: 'short'
                                 };
                                 return new Date(date).toLocaleString('en-US', options);

@@ -5,7 +5,7 @@ const { sendTelegramMessage } = require('./telegramService');
 const { sendPushToUser } = require('./pushService');
 
 /**
- * Format date/time for messages
+ * Format date/time for messages (always display in IST)
  */
 const formatDateTime = (date) => {
     const options = {
@@ -14,6 +14,7 @@ const formatDateTime = (date) => {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
         timeZoneName: 'short'
     };
     return new Date(date).toLocaleString('en-US', options);
