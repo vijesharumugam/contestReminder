@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Download, X, Share, Smartphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.0.0/app-release.apk";
+const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.1.0/app-release.apk";
 
 interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
