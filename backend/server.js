@@ -91,7 +91,7 @@ const initScheduledJobs = () => {
 };
 
 // Start Server & Scheduler
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`🚀 Contest Reminder API`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
@@ -100,8 +100,10 @@ app.listen(PORT, async () => {
     console.log(`📱 Notifications: Push + FCM + Telegram`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
+
     // Initialize scheduled jobs
     initScheduledJobs();
 });
 
+// Force restart trigger
 module.exports = app;

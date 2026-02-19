@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
 
 interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
@@ -38,10 +39,12 @@ export function InstallProvider({ children }: { children: React.ReactNode }) {
         const userAgent = navigator.userAgent.toLowerCase();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isCapacitor = (window as any).Capacitor;
 
-        if (isStandalone || isCapacitor) {
+        // Robust check for native environment using Capacitor core
+        // We rely solely on Capacitor.isNativePlatform() which is reliable for checking Native vs Web
+        const isNativePlatform = Capacitor.isNativePlatform();
+
+        if (isNativePlatform) {
             setPlatform('native');
             return;
         }

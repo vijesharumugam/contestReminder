@@ -55,6 +55,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return null;
     }
 
+
     // ✅ Signed in → render the protected content
-    return <>{children}</>;
+    return <div suppressHydrationWarning>{children}</div>;
 }

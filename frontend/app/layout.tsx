@@ -52,7 +52,7 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <div className="relative min-h-screen flex flex-col">
+              <div className="relative min-h-screen flex flex-col" suppressHydrationWarning>
                 {/* Background elements for premium look */}
                 <div className="fixed inset-0 -z-10 bg-background transition-colors duration-300">
                   <div className="absolute top-0 left-[10%] h-[400px] w-[400px] md:h-[600px] md:w-[600px] rounded-full bg-blue-600/10 blur-[120px] opacity-50 dark:opacity-50 opacity-20" />

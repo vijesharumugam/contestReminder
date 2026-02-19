@@ -2,7 +2,6 @@ const Contest = require('../models/Contest');
 const User = require('../models/User');
 const NotificationLog = require('../models/NotificationLog');
 const { sendTelegramMessage } = require('./telegramService');
-const { sendPushToUser } = require('./pushService');
 const { sendFCMToUser } = require('./fcmService');
 
 /**
@@ -23,14 +22,13 @@ const formatDateTime = (date) => {
 
 /**
  * Send daily digest of upcoming contests
- * Push = Primary, Telegram = Secondary
+ * FCM (Native) = Primary, Telegram = Secondary
  */
 const sendDailyDigest = async () => {
     try {
-        // Get all users with at least one notification method enabled
+        // Get all users with at least one notification method enabled (Native or Telegram)
         const users = await User.find({
             $or: [
-                { 'preferences.push': true, 'pushSubscriptions.0': { $exists: true } },
                 { 'preferences.push': true, 'fcmTokens.0': { $exists: true } },
                 { 'preferences.telegram': true, telegramChatId: { $exists: true, $ne: null } }
             ]
@@ -53,44 +51,6 @@ const sendDailyDigest = async () => {
         await Promise.allSettled(
             users.map(async (user) => {
                 try {
-                    // ===== PRIMARY: Web Push =====
-                    if (user.preferences?.push && user.pushSubscriptions?.length > 0) {
-                        let pushPayload;
-
-                        if (upcomingContests.length > 0) {
-                            const contestNames = upcomingContests.slice(0, 3).map(c => c.name).join(', ');
-                            const more = upcomingContests.length > 3 ? ` +${upcomingContests.length - 3} more` : '';
-                            pushPayload = {
-                                type: 'daily_digest',
-                                title: `📅 ${upcomingContests.length} Contest${upcomingContests.length > 1 ? 's' : ''} Today`,
-                                body: `${contestNames}${more}`,
-                                icon: '/icons/icon-192x192.png',
-                                badge: '/icons/icon-192x192.png',
-                                data: {
-                                    url: '/',
-                                    contests: upcomingContests.map(c => ({
-                                        name: c.name,
-                                        platform: c.platform,
-                                        startTime: c.startTime,
-                                        url: c.url
-                                    }))
-                                }
-                            };
-                        } else {
-                            pushPayload = {
-                                type: 'daily_digest',
-                                title: '☀️ Good Morning!',
-                                body: 'No contests scheduled for today. Take a break or practice!',
-                                icon: '/icons/icon-192x192.png',
-                                badge: '/icons/icon-192x192.png',
-                                data: { url: '/' }
-                            };
-                        }
-
-                        await sendPushToUser(user, pushPayload);
-                        console.log(`[Scheduler] ✅ Push digest sent to ${user.email}`);
-                    }
-
                     // ===== NATIVE: FCM (Android App) =====
                     if (user.preferences?.push && user.fcmTokens?.length > 0) {
                         if (upcomingContests.length > 0) {
@@ -141,7 +101,7 @@ const sendDailyDigest = async () => {
 
 /**
  * Send 30-minute reminders for upcoming contests
- * Push = Primary, Telegram = Secondary
+ * FCM (Native) = Primary, Telegram = Secondary
  */
 const sendUpcomingReminders = async () => {
     try {
@@ -157,7 +117,6 @@ const sendUpcomingReminders = async () => {
 
         const users = await User.find({
             $or: [
-                { 'preferences.push': true, 'pushSubscriptions.0': { $exists: true } },
                 { 'preferences.push': true, 'fcmTokens.0': { $exists: true } },
                 { 'preferences.telegram': true, telegramChatId: { $exists: true, $ne: null } }
             ]
@@ -184,25 +143,6 @@ const sendUpcomingReminders = async () => {
                         if (alreadySent) return;
 
                         const timeStr = formatDateTime(contest.startTime);
-
-                        // ===== PRIMARY: Web Push =====
-                        if (user.preferences?.push && user.pushSubscriptions?.length > 0) {
-                            const pushPayload = {
-                                type: 'reminder',
-                                title: `⏰ ${contest.name} starts in 30 min!`,
-                                body: `${contest.platform} • ${timeStr}`,
-                                icon: '/icons/icon-192x192.png',
-                                badge: '/icons/icon-192x192.png',
-                                data: {
-                                    url: contest.url,
-                                    contestName: contest.name,
-                                    platform: contest.platform
-                                }
-                            };
-
-                            await sendPushToUser(user, pushPayload);
-                            console.log(`[Scheduler] ✅ Push reminder sent to ${user.email} for ${contest.name}`);
-                        }
 
                         // ===== NATIVE: FCM (Android App) =====
                         if (user.preferences?.push && user.fcmTokens?.length > 0) {
