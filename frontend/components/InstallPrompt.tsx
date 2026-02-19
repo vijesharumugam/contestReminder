@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Download, X, Share } from "lucide-react";
+import { Download, X, Share, Smartphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.0.0/app-release.apk";
 
 interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
@@ -13,39 +15,57 @@ interface BeforeInstallPromptEvent extends Event {
     prompt(): Promise<void>;
 }
 
+type Platform = 'android' | 'ios' | 'desktop';
+
 export default function InstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
-    const [isIOS, setIsIOS] = useState(false);
+    const [platform, setPlatform] = useState<Platform>('desktop');
     const isDismissed = useRef(false);
 
     useEffect(() => {
-        // Check if iOS (since iOS doesn't support beforeinstallprompt)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isIosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        // Detect platform
+        const userAgent = navigator.userAgent.toLowerCase();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
 
-        if (isIosDevice && !isStandalone) {
-            // Show prompt for iOS users who haven't installed yet
-            // We'll show this once per session or use local storage to limit frequency
+        // Don't show if already installed as PWA or running inside Capacitor
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (isStandalone || (window as any).Capacitor) return;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const isIosDevice = /ipad|iphone|ipod/.test(userAgent) && !(window as any).MSStream;
+        const isAndroidDevice = /android/.test(userAgent);
+
+        if (isIosDevice) {
             const hasSeenPrompt = sessionStorage.getItem('iosInstallPromptSeen');
             if (!hasSeenPrompt) {
-                // Defer state update to avoid synchronous cascading render warning
                 setTimeout(() => {
-                    setIsIOS(true);
+                    setPlatform('ios');
                     setShowPrompt(true);
                 }, 0);
             }
+        } else if (isAndroidDevice) {
+            // On Android, show APK download prompt after a short delay
+            const hasSeenPrompt = sessionStorage.getItem('androidInstallPromptSeen');
+            if (!hasSeenPrompt) {
+                setTimeout(() => {
+                    setPlatform('android');
+                    setShowPrompt(true);
+                }, 2000); // Show after 2 seconds
+            }
+        } else {
+            // Desktop — use standard PWA install
+            setPlatform('desktop');
         }
 
-        // Standard PWA install prompt for Android/Desktop
+        // Standard PWA install prompt for Desktop
         const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e as BeforeInstallPromptEvent);
 
-            // Only show if user hasn't dismissed it in this session
             if (!isDismissed.current) {
+                setPlatform('desktop');
                 setShowPrompt(true);
             }
         };
@@ -58,6 +78,15 @@ export default function InstallPrompt() {
     }, []);
 
     const handleInstallClick = async () => {
+        if (platform === 'android') {
+            // Download native APK
+            window.open(APK_DOWNLOAD_URL, '_blank');
+            sessionStorage.setItem('androidInstallPromptSeen', 'true');
+            setShowPrompt(false);
+            return;
+        }
+
+        // Desktop PWA install
         if (!deferredPrompt) return;
 
         deferredPrompt.prompt();
@@ -72,10 +101,40 @@ export default function InstallPrompt() {
     const handleDismiss = () => {
         setShowPrompt(false);
         isDismissed.current = true;
-        if (isIOS) {
+        if (platform === 'ios') {
             sessionStorage.setItem('iosInstallPromptSeen', 'true');
+        } else if (platform === 'android') {
+            sessionStorage.setItem('androidInstallPromptSeen', 'true');
         }
     };
+
+    const getPromptContent = () => {
+        switch (platform) {
+            case 'android':
+                return {
+                    icon: <Smartphone className="w-6 h-6 text-white" />,
+                    title: 'Get the App',
+                    description: 'Download our native Android app for the best experience with push notifications and faster performance.',
+                    buttonText: 'Download App',
+                };
+            case 'ios':
+                return {
+                    icon: <Download className="w-6 h-6 text-white" />,
+                    title: 'Install App',
+                    description: "Install for the best experience. Tap the share button below and select 'Add to Home Screen'.",
+                    buttonText: '',
+                };
+            default:
+                return {
+                    icon: <Download className="w-6 h-6 text-white" />,
+                    title: 'Install App',
+                    description: 'Install our app for a better experience with fullscreen mode and offline access.',
+                    buttonText: 'Install Now',
+                };
+        }
+    };
+
+    const content = getPromptContent();
 
     return (
         <AnimatePresence>
@@ -100,20 +159,17 @@ export default function InstallPrompt() {
 
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
-                                <Download className="w-6 h-6 text-white" />
+                                {content.icon}
                             </div>
                             <div className="flex-1 pt-0.5">
-                                <h3 className="font-bold text-foreground text-base font-outfit">Install App</h3>
+                                <h3 className="font-bold text-foreground text-base font-outfit">{content.title}</h3>
                                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                    {isIOS
-                                        ? "Install for the best experience. Tap the share button below and select 'Add to Home Screen'."
-                                        : "Install our app for a better experience with fullscreen mode and offline access."
-                                    }
+                                    {content.description}
                                 </p>
                             </div>
                         </div>
 
-                        {isIOS ? (
+                        {platform === 'ios' ? (
                             <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded-xl border border-border">
                                 <Share className="w-4 h-4 text-blue-400" />
                                 <span>Tap <span className="font-bold text-foreground">Share</span> then <span className="font-bold text-foreground">Add to Home Screen</span></span>
@@ -123,8 +179,12 @@ export default function InstallPrompt() {
                                 onClick={handleInstallClick}
                                 className="mt-4 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
                             >
-                                <Download className="w-4 h-4" />
-                                Install Now
+                                {platform === 'android' ? (
+                                    <Smartphone className="w-4 h-4" />
+                                ) : (
+                                    <Download className="w-4 h-4" />
+                                )}
+                                {content.buttonText}
                             </button>
                         )}
                     </div>
