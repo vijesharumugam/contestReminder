@@ -1,9 +1,22 @@
-"use client";
-
 import { useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 
 export default function PWARegister() {
     useEffect(() => {
+        // If running natively, unregister any existing service worker to prevent duplicates
+        if (Capacitor.isNativePlatform()) {
+            if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                    for (const registration of registrations) {
+                        registration.unregister();
+                        console.log("Unregistered duplicate SW in native app");
+                    }
+                });
+            }
+            return;
+        }
+
+        // Standard PWA Service Worker Registration
         if (
             typeof window !== "undefined" &&
             "serviceWorker" in navigator

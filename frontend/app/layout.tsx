@@ -63,7 +63,7 @@ export default function RootLayout({
 
               {/* Main Content Area - Push content on desktop to account for sidebar */}
               <div className="flex-1 md:ml-[68px] transition-all duration-300">
-                <main className="container mx-auto px-4 md:px-8 py-20 md:py-8 min-h-screen">
+                <main className="container mx-auto px-4 md:px-8 pb-24 pt-[calc(5rem+env(safe-area-inset-top))] md:py-8 min-h-screen">
                   {children}
                 </main>
 

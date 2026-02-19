@@ -188,7 +188,7 @@ const Sidebar = () => {
             </div>
 
             {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 z-50 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-4">
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-4 pt-safe min-h-[calc(4rem+env(safe-area-inset-top))]">
                 <div className="flex items-center gap-3">
                     {/* Theme Switcher Button (Mobile Left) */}
                     <button

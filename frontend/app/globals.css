@@ -181,7 +181,22 @@
 
   /* Safe area padding for bottom nav (notch devices) */
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  /* Safe area padding for top header (status bar) */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 20px);
+  }
+
+  /* Sticky top safe area */
+  .top-safe {
+    top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Height with safe area */
+  .h-safe {
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   }
 
   /* Toast Notification Animations */
