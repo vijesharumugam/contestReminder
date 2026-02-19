@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import api from "@/lib/api";
-import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, Zap, BellRing, BellOff, Smartphone } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, AlertCircle, Unlink, Bell, Clock, Sparkles, MessageSquare, Zap, BellRing, BellOff, Smartphone, Download } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import AuthGuard from "@/components/AuthGuard";
+import { useInstall } from "@/context/InstallContext";
 
 interface UserData {
     _id: string;
@@ -42,6 +43,7 @@ export default function SettingsPage() {
     const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
     const [subscribingPush, setSubscribingPush] = useState(false);
 
+    const { platform, isInstallable, installApp } = useInstall(); // Add hook usage
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 
@@ -181,6 +183,61 @@ export default function SettingsPage() {
         }
     };
 
+    // Add App Download Section
+    const renderAppDownloadSection = () => {
+        if (platform === 'native' || !isInstallable) return null;
+
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.02 }}
+                className="glass rounded-2xl md:rounded-3xl overflow-hidden mb-4 md:mb-6"
+            >
+                <div className="relative px-4 md:px-5 py-3 md:py-4 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/15 to-pink-600/20 border-b border-white/5">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 md:gap-3">
+                            <div className="bg-violet-500/25 p-1.5 md:p-2 rounded-lg md:rounded-xl border border-violet-500/20">
+                                <Smartphone className="w-3.5 h-3.5 md:w-4 md:h-4 text-violet-400" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-sm md:text-base text-foreground">Get the App</h3>
+                                    <span className="text-[8px] md:text-[9px] font-black tracking-widest uppercase bg-violet-500/20 text-violet-400 px-1.5 py-0.5 rounded-full border border-violet-500/20">Recommended</span>
+                                </div>
+                                <p className="text-[10px] md:text-xs text-violet-300/60 leading-tight">Install for the best experience</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                        <div className="flex-1 space-y-2 text-center md:text-left">
+                            <h4 className="font-bold text-foreground text-sm md:text-base">
+                                {platform === 'android' ? 'Download for Android' : platform === 'ios' ? 'Install on iOS' : 'Install Desktop App'}
+                            </h4>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                {platform === 'android'
+                                    ? 'Get our native app for better performance and reliable background notifications.'
+                                    : platform === 'ios'
+                                        ? 'Add to Home Screen to enjoy full-screen experience and easy access.'
+                                        : 'Install as a desktop app for quick access from your taskbar/dock.'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={installApp}
+                            className="w-full md:w-auto px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-violet-600/20 active:scale-[0.98] flex items-center justify-center gap-2 text-xs md:text-sm whitespace-nowrap"
+                        >
+                            <Download className="w-4 h-4" />
+                            {platform === 'android' ? 'Download APK' : platform === 'ios' ? 'Show Instructions' : 'Install App'}
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    };
+
     if (loading) return (
         <AuthGuard>
             <div className="flex items-center justify-center py-32">
@@ -218,6 +275,9 @@ export default function SettingsPage() {
                     <h1 className="text-2xl md:text-3xl font-bold font-outfit text-foreground">Settings</h1>
                     <p className="text-muted-foreground text-xs md:text-sm">Choose how you want to receive contest reminders</p>
                 </motion.div>
+
+                {/* App Download Section */}
+                {renderAppDownloadSection()}
 
                 {/* ======= PRIMARY: Push Notifications ======= */}
                 <motion.div

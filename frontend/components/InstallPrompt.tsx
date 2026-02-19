@@ -1,110 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { Download, X, Share, Smartphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.1.0/app-release.apk";
-
-interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: string[];
-    readonly userChoice: Promise<{
-        outcome: 'accepted' | 'dismissed';
-        platform: string;
-    }>;
-    prompt(): Promise<void>;
-}
-
-type Platform = 'android' | 'ios' | 'desktop';
+import { useInstall } from "@/context/InstallContext";
 
 export default function InstallPrompt() {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-    const [showPrompt, setShowPrompt] = useState(false);
-    const [platform, setPlatform] = useState<Platform>('desktop');
-    const isDismissed = useRef(false);
-
-    useEffect(() => {
-        // Detect platform
-        const userAgent = navigator.userAgent.toLowerCase();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-
-        // Don't show if already installed as PWA or running inside Capacitor
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (isStandalone || (window as any).Capacitor) return;
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isIosDevice = /ipad|iphone|ipod/.test(userAgent) && !(window as any).MSStream;
-        const isAndroidDevice = /android/.test(userAgent);
-
-        if (isIosDevice) {
-            const hasSeenPrompt = sessionStorage.getItem('iosInstallPromptSeen');
-            if (!hasSeenPrompt) {
-                setTimeout(() => {
-                    setPlatform('ios');
-                    setShowPrompt(true);
-                }, 0);
-            }
-        } else if (isAndroidDevice) {
-            // On Android, show APK download prompt after a short delay
-            const hasSeenPrompt = sessionStorage.getItem('androidInstallPromptSeen');
-            if (!hasSeenPrompt) {
-                setTimeout(() => {
-                    setPlatform('android');
-                    setShowPrompt(true);
-                }, 2000); // Show after 2 seconds
-            }
-        } else {
-            // Desktop — use standard PWA install
-            setPlatform('desktop');
-        }
-
-        // Standard PWA install prompt for Desktop
-        const handler = (e: Event) => {
-            e.preventDefault();
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
-
-            if (!isDismissed.current) {
-                setPlatform('desktop');
-                setShowPrompt(true);
-            }
-        };
-
-        window.addEventListener("beforeinstallprompt", handler);
-
-        return () => {
-            window.removeEventListener("beforeinstallprompt", handler);
-        };
-    }, []);
-
-    const handleInstallClick = async () => {
-        if (platform === 'android') {
-            // Download native APK
-            window.open(APK_DOWNLOAD_URL, '_blank');
-            sessionStorage.setItem('androidInstallPromptSeen', 'true');
-            setShowPrompt(false);
-            return;
-        }
-
-        // Desktop PWA install
-        if (!deferredPrompt) return;
-
-        deferredPrompt.prompt();
-
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-
-        setDeferredPrompt(null);
-        setShowPrompt(false);
-    };
+    const { platform, showPrompt, setShowPrompt, installApp } = useInstall();
 
     const handleDismiss = () => {
         setShowPrompt(false);
-        isDismissed.current = true;
         if (platform === 'ios') {
             sessionStorage.setItem('iosInstallPromptSeen', 'true');
         } else if (platform === 'android') {
             sessionStorage.setItem('androidInstallPromptSeen', 'true');
+        } else {
+            sessionStorage.setItem('desktopInstallPromptSeen', 'true');
         }
     };
 
@@ -135,6 +45,9 @@ export default function InstallPrompt() {
     };
 
     const content = getPromptContent();
+
+    // specific logic for when not to show (e.g. if platform is native) is handled in context or here
+    if (platform === 'native') return null;
 
     return (
         <AnimatePresence>
@@ -176,7 +89,7 @@ export default function InstallPrompt() {
                             </div>
                         ) : (
                             <button
-                                onClick={handleInstallClick}
+                                onClick={installApp}
                                 className="mt-4 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
                             >
                                 {platform === 'android' ? (
