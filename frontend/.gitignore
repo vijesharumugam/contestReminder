@@ -50,3 +50,8 @@ android/app/build/
 android/.gradle/
 android/build/
 android/local.properties
+
+# Signing keys & APK
+*.jks
+*.keystore
+android/app/release/
