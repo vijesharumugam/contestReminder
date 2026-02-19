@@ -181,15 +181,17 @@ export default function SettingsPage() {
         }
     };
 
-    if (!isLoaded || loading) return (
-        <div className="flex items-center justify-center py-32">
-            <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                    <div className="w-12 h-12 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin" />
+    if (loading) return (
+        <AuthGuard>
+            <div className="flex items-center justify-center py-32">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                        <div className="w-12 h-12 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin" />
+                    </div>
+                    <p className="text-slate-500 text-sm font-medium">Loading settings...</p>
                 </div>
-                <p className="text-slate-500 text-sm font-medium">Loading settings...</p>
             </div>
-        </div>
+        </AuthGuard>
     );
 
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ContestReminderBot";

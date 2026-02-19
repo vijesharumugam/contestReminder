@@ -3,6 +3,7 @@ const User = require('../models/User');
 const NotificationLog = require('../models/NotificationLog');
 const { sendTelegramMessage } = require('./telegramService');
 const { sendPushToUser } = require('./pushService');
+const { sendFCMToUser } = require('./fcmService');
 
 /**
  * Format date/time for messages (always display in IST)
@@ -30,6 +31,7 @@ const sendDailyDigest = async () => {
         const users = await User.find({
             $or: [
                 { 'preferences.push': true, 'pushSubscriptions.0': { $exists: true } },
+                { 'preferences.push': true, 'fcmTokens.0': { $exists: true } },
                 { 'preferences.telegram': true, telegramChatId: { $exists: true, $ne: null } }
             ]
         }).lean();
@@ -89,6 +91,26 @@ const sendDailyDigest = async () => {
                         console.log(`[Scheduler] ✅ Push digest sent to ${user.email}`);
                     }
 
+                    // ===== NATIVE: FCM (Android App) =====
+                    if (user.preferences?.push && user.fcmTokens?.length > 0) {
+                        if (upcomingContests.length > 0) {
+                            const contestNames = upcomingContests.slice(0, 3).map(c => c.name).join(', ');
+                            const more = upcomingContests.length > 3 ? ` +${upcomingContests.length - 3} more` : '';
+                            await sendFCMToUser(user,
+                                `📅 ${upcomingContests.length} Contest${upcomingContests.length > 1 ? 's' : ''} Today`,
+                                `${contestNames}${more}`,
+                                { url: '/' }
+                            );
+                        } else {
+                            await sendFCMToUser(user,
+                                '☀️ Good Morning!',
+                                'No contests scheduled for today. Take a break or practice!',
+                                { url: '/' }
+                            );
+                        }
+                        console.log(`[Scheduler] ✅ FCM digest sent to ${user.email}`);
+                    }
+
                     // ===== SECONDARY: Telegram =====
                     if (user.preferences?.telegram && user.telegramChatId) {
                         let message;
@@ -136,6 +158,7 @@ const sendUpcomingReminders = async () => {
         const users = await User.find({
             $or: [
                 { 'preferences.push': true, 'pushSubscriptions.0': { $exists: true } },
+                { 'preferences.push': true, 'fcmTokens.0': { $exists: true } },
                 { 'preferences.telegram': true, telegramChatId: { $exists: true, $ne: null } }
             ]
         }).lean();
@@ -179,6 +202,16 @@ const sendUpcomingReminders = async () => {
 
                             await sendPushToUser(user, pushPayload);
                             console.log(`[Scheduler] ✅ Push reminder sent to ${user.email} for ${contest.name}`);
+                        }
+
+                        // ===== NATIVE: FCM (Android App) =====
+                        if (user.preferences?.push && user.fcmTokens?.length > 0) {
+                            await sendFCMToUser(user,
+                                `⏰ ${contest.name} starts in 30 min!`,
+                                `${contest.platform} • ${timeStr}`,
+                                { url: contest.url }
+                            );
+                            console.log(`[Scheduler] ✅ FCM reminder sent to ${user.email} for ${contest.name}`);
                         }
 
                         // ===== SECONDARY: Telegram =====

@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import PWARegister from "@/components/PWARegister";
 import InstallPrompt from "@/components/InstallPrompt";
+import NativePushWrapper from "@/components/NativePushWrapper";
 
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -74,6 +75,7 @@ export default function RootLayout({
             </div>
             <PWARegister />
             <InstallPrompt />
+            <NativePushWrapper />
           </ThemeProvider>
         </body>
       </html>

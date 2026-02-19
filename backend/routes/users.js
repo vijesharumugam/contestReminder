@@ -159,4 +159,32 @@ router.post('/connect-telegram', async (req, res) => {
     }
 });
 
+// ===== FCM TOKEN ROUTES (Native App) =====
+
+// Register FCM token from native app
+router.post('/fcm-token', async (req, res) => {
+    const { clerkId, fcmToken } = req.body;
+    if (!clerkId || !fcmToken) return res.status(400).json({ error: "Missing clerkId or fcmToken" });
+
+    try {
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Add token if not already present
+        if (!user.fcmTokens.includes(fcmToken)) {
+            user.fcmTokens.push(fcmToken);
+        }
+
+        // Auto-enable push preference
+        user.preferences.push = true;
+        await user.save();
+
+        console.log(`[FCM] Token registered for ${user.email} (${user.fcmTokens.length} total)`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[FCM] Token registration error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Client-side auth guard — replaces server middleware for protected pages.
@@ -16,16 +16,28 @@ import { useEffect } from "react";
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isSignedIn, isLoaded } = useAuth();
     const router = useRouter();
+    const [timedOut, setTimedOut] = useState(false);
+
+    useEffect(() => {
+        // If Clerk takes more than 5 seconds to load, redirect to sign-in
+        const timeout = setTimeout(() => {
+            if (!isLoaded) {
+                setTimedOut(true);
+            }
+        }, 5000);
+
+        return () => clearTimeout(timeout);
+    }, [isLoaded]);
 
     useEffect(() => {
         // Once Clerk finishes loading, if the user is NOT signed in → redirect
-        if (isLoaded && !isSignedIn) {
+        if ((isLoaded && !isSignedIn) || timedOut) {
             router.push("/sign-in");
         }
-    }, [isLoaded, isSignedIn, router]);
+    }, [isLoaded, isSignedIn, timedOut, router]);
 
     // Still loading auth state → show spinner
-    if (!isLoaded) {
+    if (!isLoaded && !timedOut) {
         return (
             <div className="flex items-center justify-center py-32">
                 <div className="flex flex-col items-center gap-4">

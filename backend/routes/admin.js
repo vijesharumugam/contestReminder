@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { sendTelegramMessage } = require('../services/telegramService');
 const { sendPushToUser } = require('../services/pushService');
+const { sendFCMToUser } = require('../services/fcmService');
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
 
@@ -66,6 +67,29 @@ router.post('/test-push', isAdmin, async (req, res) => {
     }
 });
 
+// Test FCM Notification (Native App)
+router.post('/test-fcm', isAdmin, async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "No userId provided" });
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+        if (!user.fcmTokens || user.fcmTokens.length === 0) {
+            return res.status(400).json({ error: "User has no FCM tokens (native app not installed)" });
+        }
+
+        await sendFCMToUser(user,
+            '🔔 Test Notification',
+            'Native push notifications are working! You will receive contest reminders here.',
+            { url: '/' }
+        );
+        res.json({ success: true, tokenCount: user.fcmTokens.length });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Send custom notification to a specific user (push + telegram)
 router.post('/send-notification', isAdmin, async (req, res) => {
     const { userId, title, message, channel } = req.body;
@@ -91,6 +115,12 @@ router.post('/send-notification', isAdmin, async (req, res) => {
             };
             await sendPushToUser(user, payload);
             results.push = true;
+        }
+
+        // Send FCM if requested and available (native app)
+        if ((channel === 'all' || channel === 'push') && user.fcmTokens?.length > 0) {
+            await sendFCMToUser(user, title, message, { url: '/' });
+            results.fcm = true;
         }
 
         // Send telegram if requested and available

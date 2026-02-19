@@ -64,9 +64,11 @@ export default function CalendarPage() {
     };
 
     if (loading) return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-            <Spinner size="lg" />
-        </div>
+        <AuthGuard>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Spinner size="lg" />
+            </div>
+        </AuthGuard>
     );
 
     return (

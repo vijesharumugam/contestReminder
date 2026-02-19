@@ -11,6 +11,7 @@ const UserSchema = new mongoose.Schema({
             auth: { type: String, required: true }
         }
     }],
+    fcmTokens: [{ type: String }],  // Firebase Cloud Messaging tokens for native app
     preferences: {
         push: { type: Boolean, default: false },
         telegram: { type: Boolean, default: false }

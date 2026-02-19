@@ -15,6 +15,7 @@ const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
 const { fetchAndSaveContests } = require('./services/clistService');
 const { sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
+const { initializeFirebase } = require('./services/fcmService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,6 +26,9 @@ app.use(express.json());
 
 // Database
 connectDB();
+
+// Initialize Firebase for FCM
+initializeFirebase();
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -93,7 +97,7 @@ app.listen(PORT, async () => {
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`📡 Server: http://localhost:${PORT}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📱 Notifications: Push + Telegram`);
+    console.log(`📱 Notifications: Push + FCM + Telegram`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
     // Initialize scheduled jobs
