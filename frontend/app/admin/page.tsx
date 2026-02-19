@@ -33,6 +33,7 @@ interface User {
     email: string;
     telegramChatId?: string;
     pushSubscriptions?: unknown[];
+    fcmTokens?: string[];
     preferences: {
         push?: boolean;
         telegram: boolean;
@@ -142,12 +143,31 @@ export default function AdminPage() {
         const statusKey = `push-${userId}`;
         setTestLoading(statusKey);
         try {
-            await api.post(`/api/admin/test-push`,
+            // Send web push
+            const webPushPromise = api.post(`/api/admin/test-push`,
                 { userId },
                 { headers: { 'x-admin-email': ADMIN_EMAIL } }
-            );
-            addToast('success', 'Push Sent! 🔔', `Test push notification sent successfully`);
-            updateTestStatus(statusKey, 'success', 'Sent!');
+            ).catch(() => null);
+
+            // Send FCM (native app) push
+            const fcmPromise = api.post(`/api/admin/test-fcm`,
+                { userId },
+                { headers: { 'x-admin-email': ADMIN_EMAIL } }
+            ).catch(() => null);
+
+            const [webResult, fcmResult] = await Promise.all([webPushPromise, fcmPromise]);
+
+            if (webResult || fcmResult) {
+                const channels = [
+                    webResult ? 'Web Push' : '',
+                    fcmResult ? 'Native App' : ''
+                ].filter(Boolean).join(' + ');
+                addToast('success', 'Notification Sent! 🔔', `Test sent via: ${channels}`);
+                updateTestStatus(statusKey, 'success', 'Sent!');
+            } else {
+                addToast('error', 'Push Failed', 'No push subscriptions or FCM tokens found');
+                updateTestStatus(statusKey, 'error', 'Failed');
+            }
         } catch {
             addToast('error', 'Push Failed', `Could not send push notification`);
             updateTestStatus(statusKey, 'error', 'Failed');
@@ -298,6 +318,8 @@ export default function AdminPage() {
                             const userName = u.email.split('@')[0].replace(/[._]/g, ' ');
                             const initials = userName.split(' ').map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
                             const hasPush = (u.pushSubscriptions?.length ?? 0) > 0;
+                            const hasFCM = (u.fcmTokens?.length ?? 0) > 0;
+                            const hasAnyPush = hasPush || hasFCM;
                             const hasTelegram = !!u.telegramChatId;
 
                             return (
@@ -315,7 +337,12 @@ export default function AdminPage() {
                                                 {/* Push status dot */}
                                                 <div className="flex items-center gap-1">
                                                     <div className={`w-1 h-1 rounded-full ${hasPush ? 'bg-blue-400' : 'bg-muted-foreground'}`} />
-                                                    <span className={`text-[9px] ${hasPush ? 'text-blue-400' : 'text-muted-foreground'}`}>Notifications</span>
+                                                    <span className={`text-[9px] ${hasPush ? 'text-blue-400' : 'text-muted-foreground'}`}>Web Push</span>
+                                                </div>
+                                                <span className="text-muted-foreground text-[9px]">•</span>
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`w-1 h-1 rounded-full ${hasFCM ? 'bg-green-400' : 'bg-muted-foreground'}`} />
+                                                    <span className={`text-[9px] ${hasFCM ? 'text-green-400' : 'text-muted-foreground'}`}>Native App</span>
                                                 </div>
                                                 <span className="text-muted-foreground text-[9px]">•</span>
                                                 {/* Telegram status dot */}
@@ -331,9 +358,9 @@ export default function AdminPage() {
                                         {/* Send Push Notification */}
                                         <button
                                             onClick={() => testPush(u._id)}
-                                            disabled={!hasPush || !!testLoading}
+                                            disabled={!hasAnyPush || !!testLoading}
                                             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all border text-[10px] font-semibold disabled:opacity-20 active:scale-[0.97]
-                                                ${hasPush
+                                                ${hasAnyPush
                                                     ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
                                                     : 'bg-muted border-border text-muted-foreground cursor-not-allowed'
                                                 }
@@ -412,6 +439,9 @@ export default function AdminPage() {
                                                 <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.pushSubscriptions && u.pushSubscriptions.length > 0 ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-muted text-muted-foreground'}`}>
                                                     Push ({u.pushSubscriptions?.length || 0})
                                                 </span>
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.fcmTokens && u.fcmTokens.length > 0 ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-muted text-muted-foreground'}`}>
+                                                    Native ({u.fcmTokens?.length || 0})
+                                                </span>
                                                 <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${u.telegramChatId ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-muted text-muted-foreground'}`}>
                                                     Telegram
                                                 </span>
@@ -423,8 +453,8 @@ export default function AdminPage() {
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => testPush(u._id)}
-                                                        disabled={!u.pushSubscriptions?.length || !!testLoading}
-                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${u.pushSubscriptions?.length ? 'bg-muted hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20 border-border' : 'bg-muted border-border cursor-not-allowed'}`}
+                                                        disabled={!(u.pushSubscriptions?.length || u.fcmTokens?.length) || !!testLoading}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border disabled:opacity-20 text-xs font-bold ${(u.pushSubscriptions?.length || u.fcmTokens?.length) ? 'bg-muted hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20 border-border' : 'bg-muted border-border cursor-not-allowed'}`}
                                                     >
                                                         {testLoading === `push-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
                                                         Test Push
