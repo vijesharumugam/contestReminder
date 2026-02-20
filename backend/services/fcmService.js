@@ -22,8 +22,14 @@ const initializeFirebase = () => {
  * Send a native push notification to a specific user via FCM
  */
 const sendFCMToUser = async (user, title, body, data = {}) => {
-    if (!user.fcmTokens || user.fcmTokens.length === 0) return { success: 0, failure: 0, removed: 0 };
-    if (!admin.apps.length) return { success: 0, failure: 0, removed: 0, error: 'Firebase not initialized' };
+    if (!user.fcmTokens || user.fcmTokens.length === 0) {
+        return { success: 0, failure: 0, removed: 0, message: 'No tokens found for user' };
+    }
+
+    if (admin.apps.length === 0) {
+        console.error('[FCM] Send failed: Firebase Admin SDK not initialized');
+        return { success: 0, failure: 0, removed: 0, error: 'Firebase Admin SDK not initialized' };
+    }
 
     const invalidTokens = [];
     let successCount = 0;

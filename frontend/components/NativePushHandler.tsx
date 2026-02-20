@@ -33,33 +33,33 @@ export default function NativePushHandler({ userId }: { userId: string | null })
                     return;
                 }
 
-                // Register with FCM
-                await PushNotifications.register();
-
-                // Create the channel to ensure notifications are delivered
+                // Create the channel to ensure notifications are delivered (especially for Android 8+)
                 await PushNotifications.createChannel({
                     id: 'contest-reminders',
                     name: 'Contest Reminders',
                     description: 'Notifications for upcoming contests',
-                    importance: 5, // High importance
-                    visibility: 1,
+                    importance: 5, // Max importance
+                    visibility: 1, // Public
                     vibration: true,
                 });
-                console.log('Notification channel created');
+                console.log('FCM: Notification channel verified/created');
+
+                // Register with FCM
+                await PushNotifications.register();
 
                 // Listen for registration success
                 PushNotifications.addListener('registration', async (token) => {
-                    console.log('FCM Token:', token.value);
+                    console.log('FCM: Token generated:', token.value);
 
                     // Send FCM token to backend
                     try {
                         await api.post('/api/users/fcm-token', {
                             fcmToken: token.value,
                         });
-                        console.log('FCM token sent to backend');
+                        console.log('FCM: Token successfully synced with backend');
                         registered.current = true;
                     } catch (err) {
-                        console.error('Failed to send FCM token to backend:', err);
+                        console.error('FCM: Failed to sync token with backend:', err);
                     }
                 });
 
