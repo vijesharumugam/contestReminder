@@ -26,7 +26,7 @@ interface InstallContextType {
 
 const InstallContext = createContext<InstallContextType | undefined>(undefined);
 
-export const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.1.0/app-release.apk";
+export const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.2.0/app-release.apk";
 
 export function InstallProvider({ children }: { children: React.ReactNode }) {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
