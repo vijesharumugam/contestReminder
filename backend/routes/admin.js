@@ -5,23 +5,16 @@ const Contest = require('../models/Contest');
 const NotificationLog = require('../models/NotificationLog');
 const { sendTelegramMessage } = require('../services/telegramService');
 const { sendFCMToUser } = require('../services/fcmService');
+const { authenticate, isAdmin } = require('../middleware/auth');
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
-
-// Middleware to check if the request comes from the admin
-const isAdmin = (req, res, next) => {
-    const requesterEmail = req.headers['x-admin-email'];
-    if (requesterEmail === ADMIN_EMAIL) {
-        next();
-    } else {
-        res.status(403).json({ error: "Access Denied: Admins Only" });
-    }
-};
+// All admin routes require authentication + admin role
+router.use(authenticate);
+router.use(isAdmin);
 
 // --- READ OPERATIONS ---
 
 // Get Dashboard Stats
-router.get('/stats', isAdmin, async (req, res) => {
+router.get('/stats', async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const activeFCM = await User.countDocuments({ "fcmTokens.0": { $exists: true } });
@@ -45,9 +38,9 @@ router.get('/stats', isAdmin, async (req, res) => {
 });
 
 // Get all users
-router.get('/users', isAdmin, async (req, res) => {
+router.get('/users', async (req, res) => {
     try {
-        const users = await User.find({}).sort({ createdAt: -1 }); // Newest first
+        const users = await User.find({}).select('-password').sort({ createdAt: -1 }); // Newest first
         res.json(users);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -55,7 +48,7 @@ router.get('/users', isAdmin, async (req, res) => {
 });
 
 // Get Recent Logs (Last 50)
-router.get('/logs', isAdmin, async (req, res) => {
+router.get('/logs', async (req, res) => {
     try {
         const logs = await NotificationLog.find({})
             .sort({ sentAt: -1 })
@@ -71,7 +64,7 @@ router.get('/logs', isAdmin, async (req, res) => {
 // --- ACTIONS ---
 
 // Test Telegram
-router.post('/test-telegram', isAdmin, async (req, res) => {
+router.post('/test-telegram', async (req, res) => {
     const { chatId } = req.body;
     if (!chatId) return res.status(400).json({ error: "No Chat ID linked" });
     try {
@@ -83,7 +76,7 @@ router.post('/test-telegram', isAdmin, async (req, res) => {
 });
 
 // Test FCM Notification (Native App)
-router.post('/test-fcm', isAdmin, async (req, res) => {
+router.post('/test-fcm', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "No userId provided" });
 
@@ -94,19 +87,24 @@ router.post('/test-fcm', isAdmin, async (req, res) => {
             return res.status(400).json({ error: "User has no FCM tokens (native app not installed)" });
         }
 
-        await sendFCMToUser(user,
+        const result = await sendFCMToUser(user,
             '🔔 Test Notification',
             'Native push notifications are working! You will receive contest reminders here.',
             { url: '/' }
         );
-        res.json({ success: true, tokenCount: user.fcmTokens.length });
+
+        if (result && result.error) {
+            return res.status(500).json({ error: result.error, details: "Firebase initialization failed" });
+        }
+
+        res.json({ success: true, tokenCount: user.fcmTokens.length, ...result });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
 // Clear FCM Tokens (Fix duplicates)
-router.post('/clear-fcm', isAdmin, async (req, res) => {
+router.post('/clear-fcm', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "No userId provided" });
 
@@ -124,7 +122,7 @@ router.post('/clear-fcm', isAdmin, async (req, res) => {
 });
 
 // Send custom notification to a specific user (push + telegram)
-router.post('/send-notification', isAdmin, async (req, res) => {
+router.post('/send-notification', async (req, res) => {
     const { userId, title, message, channel } = req.body;
     if (!userId || !title || !message) {
         return res.status(400).json({ error: "Missing userId, title, or message" });
@@ -155,7 +153,7 @@ router.post('/send-notification', isAdmin, async (req, res) => {
 });
 
 // Broadcast Message (GLOBAL)
-router.post('/broadcast', isAdmin, async (req, res) => {
+router.post('/broadcast', async (req, res) => {
     const { title, message, target } = req.body; // target: 'all', 'fcm', 'telegram'
 
     if (!title || !message) return res.status(400).json({ error: "Title and message are required" });

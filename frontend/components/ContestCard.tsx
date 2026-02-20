@@ -53,6 +53,7 @@ const ContestCard = ({ contest }: { contest: Contest }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -5 }}
+            data-testid="contest-card"
             className={`group relative glass rounded-xl md:rounded-2xl p-3 md:p-5 transition-all duration-500 border ${styles.border} ${styles.glow} hover:shadow-2xl`}
         >
             {/* Background Glow */}

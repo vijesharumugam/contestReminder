@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
-import { Send, CheckCircle2, RefreshCw, Unlink, Bell, Clock, Sparkles, MessageSquare, Zap, Smartphone, Download, Settings } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, Unlink, Bell, Clock, Sparkles, MessageSquare, Zap, Smartphone, Download, Settings, Lock, Trash2, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import AuthGuard from "@/components/AuthGuard";
 import { useInstall } from "@/context/InstallContext";
+import { useRouter } from "next/navigation";
 
 interface UserData {
     _id: string;
-    clerkId: string;
     email: string;
     telegramChatId?: string;
     pushSubscriptions?: Array<{ endpoint: string; keys: { p256dh: string; auth: string } }>;
@@ -24,18 +24,29 @@ interface UserData {
 }
 
 export default function SettingsPage() {
-    const { user, isLoaded } = useUser();
+    const { user, isLoaded, refreshUser, changePassword, deleteAccount } = useAuth();
+    const router = useRouter();
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
+
+    // Account management state
+    const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
+    const [showPasswords, setShowPasswords] = useState({ current: false, new: false });
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [deletePassword, setDeletePassword] = useState("");
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const { platform, isInstallable, installApp, APK_DOWNLOAD_URL } = useInstall();
 
     const fetchUserStatus = useCallback(async () => {
         if (!user) return;
         try {
-            const res = await api.get(`/api/users/${user.id}`);
+            const res = await api.get(`/api/users/me`);
             setUserData(res.data);
         } catch (err) {
             console.error("Error fetching user status:", err);
@@ -57,7 +68,6 @@ export default function SettingsPage() {
         try {
             const newPrefs = { ...userData.preferences, push: !userData.preferences.push };
             const res = await api.put(`/api/users/preferences`, {
-                clerkId: user.id,
                 preferences: newPrefs,
             });
             setUserData(res.data);
@@ -74,7 +84,6 @@ export default function SettingsPage() {
         try {
             const newPrefs = { ...userData.preferences, telegram: !userData.preferences.telegram };
             const res = await api.put(`/api/users/preferences`, {
-                clerkId: user.id,
                 preferences: newPrefs,
             });
             setUserData(res.data);
@@ -89,9 +98,7 @@ export default function SettingsPage() {
         if (!user || !confirm('Disconnect Telegram? You will stop receiving Telegram notifications.')) return;
         setDisconnecting(true);
         try {
-            const res = await api.post(`/api/users/disconnect-telegram`, {
-                clerkId: user.id,
-            });
+            const res = await api.post(`/api/users/disconnect-telegram`);
             setUserData(res.data);
         } catch (err) {
             console.error("Disconnect failed:", err);
@@ -182,7 +189,7 @@ export default function SettingsPage() {
     );
 
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ContestReminderBot";
-    const telegramLink = `https://t.me/${botUsername}?start=${user?.id}`;
+    const telegramLink = `https://t.me/${botUsername}?start=${user?._id}`;
     const isTelegramConnected = !!userData?.telegramChatId;
     const isTelegramEnabled = userData?.preferences?.telegram;
     const isNativeApp = platform === 'native';
@@ -418,6 +425,231 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </motion.div>
+
+                {/* ==================== ACCOUNT & SECURITY ==================== */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="space-y-4 md:space-y-6"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500/15 rounded-xl">
+                            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg md:text-2xl font-bold font-outfit">Account & Security</h2>
+                            <p className="text-[10px] md:text-xs text-muted-foreground">Manage your password and account settings</p>
+                        </div>
+                    </div>
+
+                    {/* Change Password */}
+                    <div className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl border-border space-y-4">
+                        <div className="flex items-center gap-3">
+                            <Lock className="w-5 h-5 text-emerald-400" />
+                            <h3 className="text-sm md:text-base font-bold">Change Password</h3>
+                        </div>
+
+                        <AnimatePresence>
+                            {passwordMessage && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -5 }}
+                                    className={cn(
+                                        "px-4 py-2 rounded-xl text-xs font-medium text-center border",
+                                        passwordMessage.type === 'success'
+                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                            : "bg-red-500/10 text-red-400 border-red-500/20"
+                                    )}
+                                >
+                                    {passwordMessage.text}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <form
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+                                setPasswordMessage(null);
+
+                                if (passwordForm.new !== passwordForm.confirm) {
+                                    setPasswordMessage({ type: 'error', text: 'New passwords do not match.' });
+                                    return;
+                                }
+                                if (passwordForm.new.length < 6) {
+                                    setPasswordMessage({ type: 'error', text: 'New password must be at least 6 characters.' });
+                                    return;
+                                }
+
+                                setPasswordLoading(true);
+                                const result = await changePassword(passwordForm.current, passwordForm.new);
+                                setPasswordLoading(false);
+
+                                if (result.success) {
+                                    setPasswordMessage({ type: 'success', text: 'Password changed successfully!' });
+                                    setPasswordForm({ current: "", new: "", confirm: "" });
+                                    setTimeout(() => setPasswordMessage(null), 3000);
+                                } else {
+                                    setPasswordMessage({ type: 'error', text: result.error || 'Failed to change password.' });
+                                }
+                            }}
+                            className="space-y-3"
+                        >
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">Current Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showPasswords.current ? "text" : "password"}
+                                        value={passwordForm.current}
+                                        onChange={(e) => setPasswordForm(p => ({ ...p, current: e.target.value }))}
+                                        required
+                                        className="w-full bg-muted/30 border border-border/50 rounded-xl px-3 pr-10 py-2.5 text-sm outline-none focus:border-primary/50 transition-colors"
+                                        placeholder="Enter current password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">New Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showPasswords.new ? "text" : "password"}
+                                        value={passwordForm.new}
+                                        onChange={(e) => setPasswordForm(p => ({ ...p, new: e.target.value }))}
+                                        required
+                                        minLength={6}
+                                        className="w-full bg-muted/30 border border-border/50 rounded-xl px-3 pr-10 py-2.5 text-sm outline-none focus:border-primary/50 transition-colors"
+                                        placeholder="Min 6 characters"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-muted-foreground">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordForm.confirm}
+                                    onChange={(e) => setPasswordForm(p => ({ ...p, confirm: e.target.value }))}
+                                    required
+                                    className="w-full bg-muted/30 border border-border/50 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary/50 transition-colors"
+                                    placeholder="Re-enter new password"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={passwordLoading || !passwordForm.current || !passwordForm.new || !passwordForm.confirm}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {passwordLoading ? <Spinner size="sm" className="text-white" /> : <Lock className="w-4 h-4" />}
+                                Update Password
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Danger Zone - Delete Account */}
+                    <div className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl border border-red-500/20 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                            <h3 className="text-sm md:text-base font-bold text-red-400">Danger Zone</h3>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Permanently delete your account and all associated data. This action cannot be undone.
+                        </p>
+                        <button
+                            onClick={() => setShowDeleteDialog(true)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-2.5 px-4 rounded-xl transition-all text-xs border border-red-500/20 flex items-center gap-2"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Account
+                        </button>
+
+                        {/* Delete Confirmation Dialog */}
+                        <AnimatePresence>
+                            {showDeleteDialog && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                                    onClick={() => setShowDeleteDialog(false)}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0.95 }}
+                                        animate={{ scale: 1 }}
+                                        exit={{ scale: 0.95 }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="glass p-6 rounded-3xl border border-red-500/20 w-full max-w-sm space-y-4"
+                                    >
+                                        <div className="text-center">
+                                            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                                            <h3 className="text-lg font-bold text-red-400">Delete Your Account?</h3>
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                                This will permanently delete your account, notification subscriptions, and all settings. Enter your password to confirm.
+                                            </p>
+                                        </div>
+
+                                        {deleteError && (
+                                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-2 text-xs text-center">
+                                                {deleteError}
+                                            </div>
+                                        )}
+
+                                        <input
+                                            type="password"
+                                            value={deletePassword}
+                                            onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(""); }}
+                                            placeholder="Enter your password"
+                                            className="w-full bg-muted/30 border border-red-500/20 rounded-xl px-4 py-3 text-sm outline-none focus:border-red-500/50 transition-colors"
+                                        />
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => { setShowDeleteDialog(false); setDeletePassword(""); setDeleteError(""); }}
+                                                className="flex-1 bg-muted/50 hover:bg-muted text-foreground font-bold py-3 rounded-xl transition-all text-sm"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (!deletePassword) { setDeleteError("Password is required"); return; }
+                                                    setDeleteLoading(true);
+                                                    const result = await deleteAccount(deletePassword);
+                                                    setDeleteLoading(false);
+                                                    if (result.success) {
+                                                        router.push("/sign-in");
+                                                    } else {
+                                                        setDeleteError(result.error || "Failed to delete account");
+                                                    }
+                                                }}
+                                                disabled={deleteLoading || !deletePassword}
+                                                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                            >
+                                                {deleteLoading ? <Spinner size="sm" className="text-white" /> : <Trash2 className="w-4 h-4" />}
+                                                Delete Forever
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </motion.div>
             </div>

@@ -22,10 +22,12 @@ const initializeFirebase = () => {
  * Send a native push notification to a specific user via FCM
  */
 const sendFCMToUser = async (user, title, body, data = {}) => {
-    if (!user.fcmTokens || user.fcmTokens.length === 0) return;
-    if (!admin.apps.length) return;
+    if (!user.fcmTokens || user.fcmTokens.length === 0) return { success: 0, failure: 0, removed: 0 };
+    if (!admin.apps.length) return { success: 0, failure: 0, removed: 0, error: 'Firebase not initialized' };
 
     const invalidTokens = [];
+    let successCount = 0;
+    let failureCount = 0;
 
     for (const token of user.fcmTokens) {
         try {
@@ -37,7 +39,6 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
                 },
                 data: {
                     ...data,
-                    // Ensure all values are strings (FCM requirement)
                     ...(data.url ? { url: String(data.url) } : {}),
                 },
                 android: {
@@ -51,12 +52,15 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
                 },
             });
             console.log(`[FCM] Notification sent to ${user.email} (token: ${token.substring(0, 20)}...)`);
+            successCount++;
         } catch (error) {
-            console.error(`[FCM] Error sending to ${user.email}:`, error.message);
-            // If the token is invalid/expired, mark for removal
+            console.error(`[FCM] Error sending to ${user.email}:`, error.message, error.code);
+            failureCount++;
+
             if (
                 error.code === 'messaging/registration-token-not-registered' ||
-                error.code === 'messaging/invalid-registration-token'
+                error.code === 'messaging/invalid-registration-token' ||
+                error.message.includes('Requested entity was not found')
             ) {
                 invalidTokens.push(token);
             }
@@ -69,6 +73,8 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
         await user.save();
         console.log(`[FCM] Removed ${invalidTokens.length} invalid token(s) for ${user.email}`);
     }
+
+    return { success: successCount, failure: failureCount, removed: invalidTokens.length };
 };
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/context/AuthContext";
 import NativePushHandler from "./NativePushHandler";
 
 /**
@@ -8,9 +8,9 @@ import NativePushHandler from "./NativePushHandler";
  * to the NativePushHandler component.
  */
 export default function NativePushWrapper() {
-    const { userId, isSignedIn } = useAuth();
+    const { isSignedIn, user } = useAuth();
 
-    if (!isSignedIn || !userId) return null;
+    if (!isSignedIn || !user) return null;
 
-    return <NativePushHandler userId={userId} />;
+    return <NativePushHandler userId={user._id} />;
 }

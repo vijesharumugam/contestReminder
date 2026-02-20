@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import PWARegister from "@/components/PWARegister";
 import InstallPrompt from "@/components/InstallPrompt";
 import NativePushWrapper from "@/components/NativePushWrapper";
 import { InstallProvider } from "@/context/InstallContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -33,19 +33,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <InstallProvider>
-        <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-          <head>
-            {/* Apple PWA meta tags */}
-            <meta name="google-site-verification" content="KBUWYUxbZx_yq2u3JtpDcsByGCYG6tNIt78oiUuHkj8" />
-            <meta name="apple-mobile-web-app-capable" content="yes" />
-            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-            <meta name="apple-mobile-web-app-title" content="CReminder" />
-            <link rel="apple-touch-icon" href="/icon.png" />
-            <link rel="apple-touch-icon" sizes="512x512" href="/icon.png" />
-          </head>
-          <body className={`${inter.variable} ${outfit.variable} font-sans bg-background text-foreground antialiased overflow-x-hidden`} suppressHydrationWarning>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <head>
+        {/* Apple PWA meta tags */}
+        <meta name="google-site-verification" content="KBUWYUxbZx_yq2u3JtpDcsByGCYG6tNIt78oiUuHkj8" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="CReminder" />
+        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icon.png" />
+      </head>
+      <body className={`${inter.variable} ${outfit.variable} font-sans bg-background text-foreground antialiased overflow-x-hidden`} suppressHydrationWarning>
+        <AuthProvider>
+          <InstallProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="dark"
@@ -79,9 +79,9 @@ export default function RootLayout({
               <InstallPrompt />
               <NativePushWrapper />
             </ThemeProvider>
-          </body>
-        </html>
-      </InstallProvider>
-    </ClerkProvider>
+          </InstallProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

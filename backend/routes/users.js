@@ -1,59 +1,43 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { authenticate } = require('../middleware/auth');
 
-// Sync User from Clerk (Call on login/signup)
-router.post('/sync', async (req, res) => {
-    const { clerkId, email } = req.body;
-    if (!clerkId || !email) return res.status(400).send("Missing fields");
-
+// Get authenticated user's full status
+router.get('/me', authenticate, async (req, res) => {
     try {
-        let user = await User.findOne({ clerkId });
-        if (!user) {
-            user = new User({ clerkId, email });
-            await user.save();
-        }
+        const user = await User.findById(req.user._id).select('-password');
+        if (!user) return res.status(404).json({ error: "User not found" });
         res.json(user);
     } catch (error) {
-        res.status(500).send(error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Update Preferences
-router.put('/preferences', async (req, res) => {
-    const { clerkId, preferences } = req.body;
+router.put('/preferences', authenticate, async (req, res) => {
+    const { preferences } = req.body;
     try {
-        const user = await User.findOneAndUpdate(
-            { clerkId },
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
             { preferences },
             { new: true }
-        );
+        ).select('-password');
         res.json(user);
     } catch (error) {
-        res.status(500).send(error.message);
-    }
-});
-
-// Get User Status
-router.get('/:clerkId', async (req, res) => {
-    try {
-        const user = await User.findOne({ clerkId: req.params.clerkId });
-        if (!user) return res.status(404).send("User not found");
-        res.json(user);
-    } catch (error) {
-        res.status(500).send(error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 
 // ===== PUSH SUBSCRIPTION ROUTES =====
 
 // Subscribe to push notifications
-router.post('/push/subscribe', async (req, res) => {
-    const { clerkId, subscription } = req.body;
-    if (!clerkId || !subscription) return res.status(400).json({ error: "Missing clerkId or subscription" });
+router.post('/push/subscribe', authenticate, async (req, res) => {
+    const { subscription } = req.body;
+    if (!subscription) return res.status(400).json({ error: "Missing subscription" });
 
     try {
-        const user = await User.findOne({ clerkId });
+        const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
         // Check if this subscription endpoint already exists
@@ -69,7 +53,10 @@ router.post('/push/subscribe', async (req, res) => {
         await user.save();
 
         console.log(`[Push] Subscription added for ${user.email} (${user.pushSubscriptions.length} total)`);
-        res.json({ success: true, user });
+
+        const userObj = user.toObject();
+        delete userObj.password;
+        res.json({ success: true, user: userObj });
     } catch (error) {
         console.error('[Push] Subscribe error:', error);
         res.status(500).json({ error: error.message });
@@ -77,12 +64,11 @@ router.post('/push/subscribe', async (req, res) => {
 });
 
 // Unsubscribe from push notifications
-router.post('/push/unsubscribe', async (req, res) => {
-    const { clerkId, endpoint } = req.body;
-    if (!clerkId) return res.status(400).json({ error: "Missing clerkId" });
+router.post('/push/unsubscribe', authenticate, async (req, res) => {
+    const { endpoint } = req.body;
 
     try {
-        const user = await User.findOne({ clerkId });
+        const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
         if (endpoint) {
@@ -101,14 +87,17 @@ router.post('/push/unsubscribe', async (req, res) => {
         await user.save();
 
         console.log(`[Push] Unsubscribed for ${user.email} (${user.pushSubscriptions.length} remaining)`);
-        res.json({ success: true, user });
+
+        const userObj = user.toObject();
+        delete userObj.password;
+        res.json({ success: true, user: userObj });
     } catch (error) {
         console.error('[Push] Unsubscribe error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get VAPID public key
+// Get VAPID public key (public route - no auth needed)
 router.get('/push/vapid-key', (req, res) => {
     const key = process.env.VAPID_PUBLIC_KEY;
     if (!key) return res.status(500).json({ error: "VAPID key not configured" });
@@ -118,12 +107,9 @@ router.get('/push/vapid-key', (req, res) => {
 // ===== TELEGRAM ROUTES =====
 
 // Disconnect Telegram
-router.post('/disconnect-telegram', async (req, res) => {
-    const { clerkId } = req.body;
-    if (!clerkId) return res.status(400).json({ error: "Missing clerkId" });
-
+router.post('/disconnect-telegram', authenticate, async (req, res) => {
     try {
-        const user = await User.findOne({ clerkId });
+        const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
         user.telegramChatId = undefined;
@@ -131,7 +117,10 @@ router.post('/disconnect-telegram', async (req, res) => {
         await user.save();
 
         console.log(`[Users] Telegram disconnected for user ${user.email}`);
-        res.json(user);
+
+        const userObj = user.toObject();
+        delete userObj.password;
+        res.json(userObj);
     } catch (error) {
         console.error('[Users] Disconnect Telegram error:', error);
         res.status(500).json({ error: error.message });
@@ -139,12 +128,12 @@ router.post('/disconnect-telegram', async (req, res) => {
 });
 
 // Manual Connect Telegram (for testing/debugging)
-router.post('/connect-telegram', async (req, res) => {
-    const { clerkId, telegramChatId } = req.body;
-    if (!clerkId || !telegramChatId) return res.status(400).json({ error: "Missing clerkId or telegramChatId" });
+router.post('/connect-telegram', authenticate, async (req, res) => {
+    const { telegramChatId } = req.body;
+    if (!telegramChatId) return res.status(400).json({ error: "Missing telegramChatId" });
 
     try {
-        const user = await User.findOne({ clerkId });
+        const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
         user.telegramChatId = String(telegramChatId);
@@ -152,7 +141,10 @@ router.post('/connect-telegram', async (req, res) => {
         await user.save();
 
         console.log(`[Users] Telegram manually connected for user ${user.email}, chatId: ${telegramChatId}`);
-        res.json(user);
+
+        const userObj = user.toObject();
+        delete userObj.password;
+        res.json(userObj);
     } catch (error) {
         console.error('[Users] Connect Telegram error:', error);
         res.status(500).json({ error: error.message });
@@ -162,12 +154,12 @@ router.post('/connect-telegram', async (req, res) => {
 // ===== FCM TOKEN ROUTES (Native App) =====
 
 // Register FCM token from native app
-router.post('/fcm-token', async (req, res) => {
-    const { clerkId, fcmToken } = req.body;
-    if (!clerkId || !fcmToken) return res.status(400).json({ error: "Missing clerkId or fcmToken" });
+router.post('/fcm-token', authenticate, async (req, res) => {
+    const { fcmToken } = req.body;
+    if (!fcmToken) return res.status(400).json({ error: "Missing fcmToken" });
 
     try {
-        const user = await User.findOne({ clerkId });
+        const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
         // Add token if not already present

@@ -36,6 +36,17 @@ export default function NativePushHandler({ userId }: { userId: string | null })
                 // Register with FCM
                 await PushNotifications.register();
 
+                // Create the channel to ensure notifications are delivered
+                await PushNotifications.createChannel({
+                    id: 'contest-reminders',
+                    name: 'Contest Reminders',
+                    description: 'Notifications for upcoming contests',
+                    importance: 5, // High importance
+                    visibility: 1,
+                    vibration: true,
+                });
+                console.log('Notification channel created');
+
                 // Listen for registration success
                 PushNotifications.addListener('registration', async (token) => {
                     console.log('FCM Token:', token.value);
@@ -43,7 +54,6 @@ export default function NativePushHandler({ userId }: { userId: string | null })
                     // Send FCM token to backend
                     try {
                         await api.post('/api/users/fcm-token', {
-                            clerkId: userId,
                             fcmToken: token.value,
                         });
                         console.log('FCM token sent to backend');

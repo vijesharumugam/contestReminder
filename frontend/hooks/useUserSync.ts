@@ -1,24 +1,6 @@
-import { useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
-import api from '@/lib/api';
-
+// This hook is no longer needed with JWT auth.
+// Users are automatically synced during register/login.
+// Kept as a no-op for backward compatibility in case it's imported elsewhere.
 export const useUserSync = () => {
-    const { user, isSignedIn } = useUser();
-
-    useEffect(() => {
-        const syncUser = async () => {
-            if (isSignedIn && user) {
-                try {
-                    await api.post(`/api/users/sync`, {
-                        clerkId: user.id,
-                        email: user.primaryEmailAddress?.emailAddress,
-                    });
-                } catch (error) {
-                    console.error("Failed to sync user:", error);
-                }
-            }
-        };
-
-        syncUser();
-    }, [isSignedIn, user]);
+    // No-op: JWT auth handles user creation during registration
 };

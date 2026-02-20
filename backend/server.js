@@ -10,6 +10,7 @@ const axios = require('axios');
 
 // Internal modules
 const connectDB = require('./config/db');
+const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
@@ -31,6 +32,7 @@ connectDB();
 initializeFirebase();
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/admin', adminRoutes);

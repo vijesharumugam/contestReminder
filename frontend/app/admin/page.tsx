@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
-import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import Link from "next/link";
 import {
@@ -14,8 +13,6 @@ import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
-
 // --- Types ---
 interface Toast {
     id: string;
@@ -24,10 +21,10 @@ interface Toast {
     message: string;
 }
 
-interface User {
+interface UserItem {
     _id: string;
-    clerkId: string;
     email: string;
+    role: string;
     telegramChatId?: string;
     fcmTokens?: string[];
     createdAt: string;
@@ -53,10 +50,10 @@ interface SystemLog {
 }
 
 export default function AdminPage() {
-    const { user, isLoaded, isSignedIn } = useUser();
+    const { user, isLoaded, isSignedIn, isAdmin } = useAuth();
 
     // Data States
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<UserItem[]>([]);
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [logs, setLogs] = useState<SystemLog[]>([]);
 
@@ -70,10 +67,6 @@ export default function AdminPage() {
     // Form States
     const [broadcastForm, setBroadcastForm] = useState({ title: "", message: "", target: "all" });
     const [broadcastLoading, setBroadcastLoading] = useState(false);
-
-    const isAdmin = useMemo(() => {
-        return isLoaded && isSignedIn && user?.primaryEmailAddress?.emailAddress === ADMIN_EMAIL;
-    }, [isLoaded, isSignedIn, user]);
 
     // --- Helpers ---
     const addToast = (type: 'success' | 'error', title: string, message: string) => {
@@ -91,13 +84,11 @@ export default function AdminPage() {
         if (!isAdmin) return;
         setLoading(true);
         try {
-            const headers = { 'x-admin-email': ADMIN_EMAIL };
-
-            // Parallel fetch for speed
+            // Parallel fetch for speed (JWT token is sent automatically via axios interceptor)
             const [usersRes, statsRes, logsRes] = await Promise.allSettled([
-                api.get('/api/admin/users', { headers }),
-                api.get('/api/admin/stats', { headers }),
-                api.get('/api/admin/logs', { headers })
+                api.get('/api/admin/users'),
+                api.get('/api/admin/stats'),
+                api.get('/api/admin/logs')
             ]);
 
             if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data);
@@ -127,7 +118,7 @@ export default function AdminPage() {
         if (!confirm('Clear all native push tokens for this user?')) return;
         setLoading(true);
         try {
-            await api.post(`/api/admin/clear-fcm`, { userId }, { headers: { 'x-admin-email': ADMIN_EMAIL } });
+            await api.post(`/api/admin/clear-fcm`, { userId });
             addToast('success', 'Tokens Cleared', 'FCM tokens reset.');
             fetchAllData();
         } catch (err) {
@@ -143,7 +134,7 @@ export default function AdminPage() {
 
         setBroadcastLoading(true);
         try {
-            await api.post('/api/admin/broadcast', broadcastForm, { headers: { 'x-admin-email': ADMIN_EMAIL } });
+            await api.post('/api/admin/broadcast', broadcastForm);
             addToast('success', 'Broadcast Sent', 'Message queued for delivery.');
             setBroadcastForm({ title: "", message: "", target: "all" });
         } catch (err) {
@@ -160,10 +151,22 @@ export default function AdminPage() {
             const endpoint = type === 'fcm' ? '/api/admin/test-fcm' : '/api/admin/test-telegram';
             const payload = type === 'fcm' ? { userId } : { chatId: id };
 
-            await api.post(endpoint, payload, { headers: { 'x-admin-email': ADMIN_EMAIL } });
-            addToast('success', 'Test Sent', `${type.toUpperCase()} notification sent successfully.`);
-        } catch (err) {
-            addToast('error', 'Test Failed', `Failed to send ${type.toUpperCase()} test.`);
+            const res = await api.post(endpoint, payload);
+            const data = res.data;
+
+            if (type === 'fcm' && data.failure > 0) {
+                if (data.success === 0) {
+                    addToast('error', 'Sending Failed', `All tokens failed. ${data.removed} invalid tokens removed.`);
+                } else {
+                    addToast('success', 'Partial Success', `Sent: ${data.success}, Failed: ${data.failure}`);
+                }
+            } else {
+                addToast('success', 'Test Sent', `${type.toUpperCase()} test sent successfully.`);
+            }
+        } catch (err: any) {
+            console.error(err);
+            const msg = err.response?.data?.error || err.message || 'Unknown error';
+            addToast('error', 'Test Failed', `${msg}`);
         } finally {
             setTestLoading(null);
         }
@@ -175,7 +178,7 @@ export default function AdminPage() {
         const lower = searchQuery.toLowerCase();
         return users.filter(u =>
             u.email.toLowerCase().includes(lower) ||
-            u.clerkId.toLowerCase().includes(lower) ||
+            u._id.toLowerCase().includes(lower) ||
             u.telegramChatId?.toLowerCase().includes(lower)
         );
     }, [users, searchQuery]);
@@ -399,7 +402,7 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                             ))}
-                            {filteredUsers.length === 0 && <div className="text-center text-muted-foreground text-sm py-4">No users found matching "{searchQuery}"</div>}
+                            {filteredUsers.length === 0 && <div className="text-center text-muted-foreground text-sm py-4">No users found matching &quot;{searchQuery}&quot;</div>}
                         </div>
 
                         {/* Desktop View: Table */}

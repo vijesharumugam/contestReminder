@@ -16,7 +16,7 @@ if (token) {
     // Handle /start <token> - when user clicks the connect link
     bot.onText(/\/start (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
-        const connectToken = match[1]; // The captured token (should be clerkId)
+        const connectToken = match[1]; // The captured token (user's MongoDB _id)
 
         console.log(`[Telegram] Received /start command with token: ${connectToken}, chatId: ${chatId}`);
 
@@ -26,8 +26,8 @@ if (token) {
         }
 
         try {
-            // Find user by clerkId
-            let user = await User.findOne({ clerkId: connectToken });
+            // Find user by MongoDB _id
+            let user = await User.findById(connectToken);
             console.log(`[Telegram] User lookup result:`, user ? `Found: ${user.email}` : 'Not found');
 
             if (user) {
@@ -92,7 +92,7 @@ if (token) {
                 }
             } else {
                 bot.sendMessage(chatId, "❌ Could not identify user. Please try initiating the connection from the website again.\n\nMake sure you're logged in on the website first.");
-                console.log(`[Telegram] User not found for clerkId: ${connectToken}`);
+                console.log(`[Telegram] User not found for userId: ${connectToken}`);
             }
         } catch (err) {
             console.error("[Telegram] Bot Error:", err);

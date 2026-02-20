@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { UserButton, useUser, SignInButton, useClerk } from "@clerk/nextjs";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
     Home,
     Calendar as CalendarIcon,
@@ -22,9 +22,9 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 
 const Sidebar = () => {
-    const { isLoaded, isSignedIn, user } = useUser();
-    const { signOut } = useClerk();
+    const { isLoaded, isSignedIn, isAdmin, user, logout } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
@@ -33,12 +33,6 @@ const Sidebar = () => {
         const timer = setTimeout(() => setMounted(true), 0);
         return () => clearTimeout(timer);
     }, []);
-
-    const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "vijesharumugam26@gmail.com";
-
-    const isAdmin = useMemo(() => {
-        return isLoaded && isSignedIn && user?.primaryEmailAddress?.emailAddress === ADMIN_EMAIL;
-    }, [isLoaded, isSignedIn, user, ADMIN_EMAIL]);
 
     const navLinks = useMemo(() => {
         const links = [
@@ -58,8 +52,16 @@ const Sidebar = () => {
         setTheme(theme === "dark" ? "light" : "dark");
     };
 
+    const handleSignOut = () => {
+        logout();
+        router.push("/");
+    };
+
     const themeIcon = !mounted ? <div className="w-6 h-6" /> : (theme === "dark" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />);
     const mobileThemeIcon = !mounted ? <div className="w-5 h-5" /> : (theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />);
+
+    // Get user initials for avatar
+    const userInitial = user?.email?.charAt(0)?.toUpperCase() || "U";
 
     return (
         <>
@@ -134,17 +136,15 @@ const Sidebar = () => {
                 <div className="w-full px-4 pt-4 border-t border-border flex flex-col items-center gap-4">
                     {isSignedIn ? (
                         <div className="flex flex-col items-center gap-4">
-                            <UserButton
-                                afterSignOutUrl="/"
-                                appearance={{
-                                    elements: {
-                                        userButtonAvatarBox: "h-10 w-10 ring-2 ring-border hover:ring-primary/50 transition-all",
-                                        userButtonTrigger: "focus:shadow-none"
-                                    }
-                                }}
-                            />
+                            {/* User Avatar */}
+                            <div
+                                className="h-10 w-10 rounded-full bg-primary/20 border-2 border-border hover:border-primary/50 transition-all flex items-center justify-center cursor-pointer"
+                                title={user?.email || "Profile"}
+                            >
+                                <span className="text-sm font-bold text-primary">{userInitial}</span>
+                            </div>
                             <button
-                                onClick={() => signOut()}
+                                onClick={handleSignOut}
                                 className="text-muted-foreground hover:text-destructive transition-colors p-2 rounded-xl hover:bg-destructive/10"
                                 title="Sign Out"
                             >
@@ -152,11 +152,13 @@ const Sidebar = () => {
                             </button>
                         </div>
                     ) : (
-                        <SignInButton mode="modal">
-                            <button className="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-lg shadow-primary/20 group" title="Sign In">
-                                <UserIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            </button>
-                        </SignInButton>
+                        <Link
+                            href="/sign-in"
+                            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-lg shadow-primary/20 group"
+                            title="Sign In"
+                        >
+                            <UserIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        </Link>
                     )}
                 </div>
             </aside>
@@ -190,15 +192,6 @@ const Sidebar = () => {
             {/* Mobile Header */}
             <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-4 pt-safe min-h-[calc(4rem+env(safe-area-inset-top))]">
                 <div className="flex items-center gap-3">
-                    {/* Theme Switcher Button (Mobile Left) */}
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all border border-border/50"
-                        title="Toggle Theme"
-                    >
-                        {mobileThemeIcon}
-                    </button>
-
                     <Link href="/" className="flex items-center gap-2">
                         <div className="relative w-8 h-8">
                             <Image src="/icon.png" alt="Logo" fill className="object-contain" sizes="32px" />
@@ -210,12 +203,38 @@ const Sidebar = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Theme Switcher Button (Mobile — before profile) */}
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all border border-border/50"
+                        title="Toggle Theme"
+                    >
+                        {mobileThemeIcon}
+                    </button>
+
                     {isSignedIn ? (
-                        <UserButton afterSignOutUrl="/" />
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="h-8 w-8 rounded-full bg-primary/20 border border-border flex items-center justify-center"
+                                title={user?.email || "Profile"}
+                            >
+                                <span className="text-xs font-bold text-primary">{userInitial}</span>
+                            </div>
+                            <button
+                                onClick={handleSignOut}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                                title="Sign Out"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                        </div>
                     ) : (
-                        <SignInButton mode="modal">
-                            <button className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-lg">Sign In</button>
-                        </SignInButton>
+                        <Link
+                            href="/sign-in"
+                            className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-lg"
+                        >
+                            Sign In
+                        </Link>
                     )}
                 </div>
             </div>
