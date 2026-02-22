@@ -15,10 +15,11 @@ const formatDateTime = (date) => {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'Asia/Kolkata',
-        timeZoneName: 'short'
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
     };
-    return new Date(date).toLocaleString('en-US', options);
+    const formatted = new Date(date).toLocaleString('en-IN', options);
+    return `${formatted} IST`;
 };
 
 /**
@@ -130,8 +131,8 @@ const sendDailyDigest = async () => {
 const sendUpcomingReminders = async () => {
     try {
         const now = new Date();
-        const rangeStart = new Date(now.getTime() + 25 * 60 * 1000);
-        const rangeEnd = new Date(now.getTime() + 35 * 60 * 1000);
+        const rangeStart = new Date(now.getTime() + 27 * 60 * 1000);
+        const rangeEnd = new Date(now.getTime() + 32 * 60 * 1000);
 
         const contests = await Contest.find({
             startTime: { $gte: rangeStart, $lte: rangeEnd }
@@ -168,11 +169,12 @@ const sendUpcomingReminders = async () => {
                         if (alreadySent) return;
 
                         const timeStr = formatDateTime(contest.startTime);
+                        const minsLeft = Math.round((new Date(contest.startTime) - now) / (60 * 1000));
 
                         // ===== WEB PUSH (Browser / PWA) =====
                         if (user.preferences?.push && user.pushSubscriptions?.length > 0) {
                             await sendPushToUser(user, {
-                                title: `⏰ ${contest.name} starts in 30 min!`,
+                                title: `⏰ ${contest.name} starts in ${minsLeft} min!`,
                                 body: `${contest.platform} • ${timeStr}`,
                                 type: 'reminder',
                                 data: { url: contest.url }
@@ -183,7 +185,7 @@ const sendUpcomingReminders = async () => {
                         // ===== NATIVE: FCM (Android App) =====
                         if (user.preferences?.push && user.fcmTokens?.length > 0) {
                             await sendFCMToUser(user,
-                                `⏰ ${contest.name} starts in 30 min!`,
+                                `⏰ ${contest.name} starts in ${minsLeft} min!`,
                                 `${contest.platform} • ${timeStr}`,
                                 { url: contest.url }
                             );
@@ -192,7 +194,7 @@ const sendUpcomingReminders = async () => {
 
                         // ===== SECONDARY: Telegram =====
                         if (user.preferences?.telegram && user.telegramChatId) {
-                            const message = `⏰ *Contest Starting Soon!*\n━━━━━━━━━━━━━━━━━━━━\n\n🎯 *${contest.name}*\n📍 Platform: *${contest.platform}*\n⏰ Starts in: *30 minutes*\n🕐 Start Time: ${timeStr}\n\n🔗 [Join Now](${contest.url})\n\n━━━━━━━━━━━━━━━━━━━━\n💪 Get ready to compete!`;
+                            const message = `⏰ *Contest Starting Soon!*\n━━━━━━━━━━━━━━━━━━━━\n\n🎯 *${contest.name}*\n📍 Platform: *${contest.platform}*\n⏰ Starts in: *${minsLeft} minutes*\n🕐 Start Time: ${timeStr}\n\n🔗 [Join Now](${contest.url})\n\n━━━━━━━━━━━━━━━━━━━━\n💪 Get ready to compete!`;
 
                             await sendTelegramMessage(user.telegramChatId, message);
                             console.log(`[Scheduler] ✅ Telegram reminder sent to ${user.email} for ${contest.name}`);
