@@ -12,6 +12,29 @@ const { authenticate, isAdmin } = require('../middleware/auth');
 router.use(authenticate);
 router.use(isAdmin);
 
+// Health check for notification services
+router.get('/health', async (req, res) => {
+    try {
+        const admin = require('firebase-admin');
+        const health = {
+            fcm: {
+                initialized: admin.apps.length > 0,
+                hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT
+            },
+            webPush: {
+                hasVapidKeys: !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY)
+            },
+            telegram: {
+                initialized: !!process.env.TELEGRAM_BOT_TOKEN
+            },
+            env: process.env.NODE_ENV || 'development'
+        };
+        res.json(health);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- READ OPERATIONS ---
 
 // Get Dashboard Stats
@@ -89,6 +112,7 @@ router.post('/test-fcm', async (req, res) => {
             return res.status(400).json({ error: "User has no FCM tokens (native app not installed)" });
         }
 
+        console.log(`[Admin] Manually triggering FCM test for ${user.email}...`);
         const result = await sendFCMToUser(user,
             '🔔 Test Notification',
             'Native push notifications are working! You will receive contest reminders here.',
@@ -97,6 +121,7 @@ router.post('/test-fcm', async (req, res) => {
 
         res.json({ success: true, ...result });
     } catch (error) {
+        console.error(`[Admin] FCM test error for user ${userId}:`, error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -113,6 +138,7 @@ router.post('/test-web-push', async (req, res) => {
             return res.status(400).json({ error: "User has no web push subscriptions" });
         }
 
+        console.log(`[Admin] Manually triggering WebPush test for ${user.email}...`);
         await sendPushToUser(user, {
             title: '🔔 Test Notification',
             body: 'Web push notifications are working! You will receive contest reminders here.',
@@ -122,6 +148,7 @@ router.post('/test-web-push', async (req, res) => {
 
         res.json({ success: true, subscriptionCount: user.pushSubscriptions.length });
     } catch (error) {
+        console.error(`[Admin] WebPush test error for user ${userId}:`, error);
         res.status(500).json({ error: error.message });
     }
 });

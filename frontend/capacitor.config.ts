@@ -25,6 +25,9 @@ const config: CapacitorConfig = {
 
     // Plugins configuration
     plugins: {
+        PushNotifications: {
+            presentationOptions: ["badge", "sound", "alert"],
+        },
         // Splash Screen
         SplashScreen: {
             launchAutoHide: true,

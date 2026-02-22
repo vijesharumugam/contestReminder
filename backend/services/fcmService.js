@@ -37,7 +37,7 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
 
     for (const token of user.fcmTokens) {
         try {
-            await admin.messaging().send({
+            const response = await admin.messaging().send({
                 token,
                 notification: {
                     title,
@@ -46,6 +46,7 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
                 data: {
                     ...data,
                     ...(data.url ? { url: String(data.url) } : {}),
+                    click_action: 'FLUTTER_NOTIFICATION_CLICK', // Legacy but sometimes helps
                 },
                 android: {
                     priority: 'high',
@@ -56,11 +57,19 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
                         sound: 'default',
                     },
                 },
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: 'default',
+                        },
+                    },
+                },
             });
-            console.log(`[FCM] Notification sent to ${user.email} (token: ${token.substring(0, 20)}...)`);
+            console.log(`[FCM] ✅ Success: Message sent to ${user.email}. ID: ${response}`);
             successCount++;
         } catch (error) {
-            console.error(`[FCM] Error sending to ${user.email}:`, error.message, error.code);
+            console.error(`[FCM] ❌ Failed to send to ${user.email}:`, error.code, error.message);
+            if (error.stack) console.error(error.stack);
             failureCount++;
 
             if (

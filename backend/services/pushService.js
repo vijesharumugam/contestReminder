@@ -21,22 +21,33 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
  * Returns true if successful, false if subscription is invalid (should be removed)
  */
 const sendPushToSubscription = async (subscription, payload) => {
-    try {
-        console.log(`[WebPush] Sending to endpoint: ...${subscription.endpoint.slice(-30)}`);
-        await webpush.sendNotification(subscription, JSON.stringify(payload));
-        console.log(`[WebPush] ✅ Sent successfully to: ...${subscription.endpoint.slice(-30)}`);
-        return true;
-    } catch (error) {
-        if (error.statusCode === 410 || error.statusCode === 404) {
-            // Subscription expired or invalid — mark for removal
-            console.log(`[WebPush] ⚠️ Subscription expired (${error.statusCode}): ${subscription.endpoint.slice(-30)}`);
+    let retries = 2;
+    while (retries >= 0) {
+        try {
+            console.log(`[WebPush] Sending to endpoint: ...${subscription.endpoint.slice(-30)}`);
+            await webpush.sendNotification(subscription, JSON.stringify(payload));
+            console.log(`[WebPush] ✅ Sent successfully to: ...${subscription.endpoint.slice(-30)}`);
+            return true;
+        } catch (error) {
+            if (error.statusCode >= 500 && retries > 0) {
+                console.log(`[WebPush] ⏳ Retrying (...${retries} left) due to server error: ${error.statusCode}`);
+                retries--;
+                await new Promise(r => setTimeout(r, 1000));
+                continue;
+            }
+
+            if (error.statusCode === 410 || error.statusCode === 404) {
+                // Subscription expired or invalid — mark for removal
+                console.log(`[WebPush] ⚠️ Subscription expired (${error.statusCode}): ${subscription.endpoint.slice(-30)}`);
+                return false;
+            }
+            console.error(`[WebPush] ❌ Send failed (status: ${error.statusCode || 'unknown'}):`, error.message);
+            console.error(`[WebPush] Endpoint: ...${subscription.endpoint.slice(-30)}`);
+            if (error.body) console.error(`[WebPush] Response body:`, error.body);
             return false;
         }
-        console.error(`[WebPush] ❌ Send failed (status: ${error.statusCode || 'unknown'}):`, error.message);
-        console.error(`[WebPush] Endpoint: ...${subscription.endpoint.slice(-30)}`);
-        if (error.body) console.error(`[WebPush] Response body:`, error.body);
-        return false;
     }
+    return false;
 };
 
 /**

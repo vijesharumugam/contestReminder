@@ -39,12 +39,9 @@ export default function WebPushSubscriber() {
         const subscribeToPush = async () => {
             try {
                 // 1. Get VAPID public key from backend
-                const vapidRes = await fetch(`${BACKEND_URL}/api/users/push/vapid-key`);
-                if (!vapidRes.ok) {
-                    console.error("[WebPush] Failed to fetch VAPID key:", vapidRes.status);
-                    return;
-                }
-                const { publicKey } = await vapidRes.json();
+                const { data } = await api.get("/api/users/push/vapid-key");
+                const publicKey = data.publicKey;
+
                 if (!publicKey) {
                     console.error("[WebPush] No VAPID public key returned from server");
                     return;
