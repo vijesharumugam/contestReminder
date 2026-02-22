@@ -77,7 +77,7 @@ router.post('/test-telegram', async (req, res) => {
     }
 });
 
-// Test FCM / Web Push Notification
+// Test FCM Notification (Native App)
 router.post('/test-fcm', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "No userId provided" });
@@ -85,35 +85,42 @@ router.post('/test-fcm', async (req, res) => {
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: "User not found" });
-
-        const results = { fcm: null, webPush: null };
-
-        // Send FCM if available (native app)
-        if (user.fcmTokens && user.fcmTokens.length > 0) {
-            const fcmResult = await sendFCMToUser(user,
-                '🔔 Test Notification',
-                'Native push notifications are working! You will receive contest reminders here.',
-                { url: '/' }
-            );
-            results.fcm = fcmResult;
+        if (!user.fcmTokens || user.fcmTokens.length === 0) {
+            return res.status(400).json({ error: "User has no FCM tokens (native app not installed)" });
         }
 
-        // Send Web Push if available (browser/PWA)
-        if (user.pushSubscriptions && user.pushSubscriptions.length > 0) {
-            await sendPushToUser(user, {
-                title: '🔔 Test Notification',
-                body: 'Web push notifications are working! You will receive contest reminders here.',
-                type: 'test',
-                data: { url: '/' }
-            });
-            results.webPush = { sent: true, subscriptionCount: user.pushSubscriptions.length };
+        const result = await sendFCMToUser(user,
+            '🔔 Test Notification',
+            'Native push notifications are working! You will receive contest reminders here.',
+            { url: '/' }
+        );
+
+        res.json({ success: true, ...result });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Test Web Push Notification (Browser/PWA)
+router.post('/test-web-push', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "No userId provided" });
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+        if (!user.pushSubscriptions || user.pushSubscriptions.length === 0) {
+            return res.status(400).json({ error: "User has no web push subscriptions" });
         }
 
-        if (!results.fcm && !results.webPush) {
-            return res.status(400).json({ error: "User has no FCM tokens or web push subscriptions" });
-        }
+        await sendPushToUser(user, {
+            title: '🔔 Test Notification',
+            body: 'Web push notifications are working! You will receive contest reminders here.',
+            type: 'test',
+            data: { url: '/' }
+        });
 
-        res.json({ success: true, results });
+        res.json({ success: true, subscriptionCount: user.pushSubscriptions.length });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -188,6 +195,7 @@ router.post('/broadcast', async (req, res) => {
     try {
         let query = {};
         if (target === 'fcm') query = { "fcmTokens.0": { $exists: true } };
+        else if (target === 'webpush') query = { "pushSubscriptions.0": { $exists: true } };
         else if (target === 'telegram') query = { telegramChatId: { $ne: null } };
         else if (target === 'push') query = { $or: [{ "fcmTokens.0": { $exists: true } }, { "pushSubscriptions.0": { $exists: true } }] };
 
@@ -206,7 +214,7 @@ router.post('/broadcast', async (req, res) => {
                     await sendFCMToUser(user, title, message, { url: '/' });
                 }
                 // Web Push (browser/PWA)
-                if (user.pushSubscriptions?.length > 0 && (target === 'all' || target === 'push')) {
+                if (user.pushSubscriptions?.length > 0 && (target === 'all' || target === 'push' || target === 'webpush')) {
                     await sendPushToUser(user, {
                         title,
                         body: message,

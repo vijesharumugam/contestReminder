@@ -145,12 +145,20 @@ export default function AdminPage() {
         }
     };
 
-    const testNotification = async (type: 'fcm' | 'telegram', id: string, userId: string) => {
+    const testNotification = async (type: 'fcm' | 'telegram' | 'webpush', id: string, userId: string) => {
         const key = `${type}-${userId}`;
         setTestLoading(key);
         try {
-            const endpoint = type === 'fcm' ? '/api/admin/test-fcm' : '/api/admin/test-telegram';
-            const payload = type === 'fcm' ? { userId } : { chatId: id };
+            let endpoint = '/api/admin/test-fcm';
+            let payload: any = { userId };
+
+            if (type === 'telegram') {
+                endpoint = '/api/admin/test-telegram';
+                payload = { chatId: id };
+            } else if (type === 'webpush') {
+                endpoint = '/api/admin/test-web-push';
+                payload = { userId };
+            }
 
             const res = await api.post(endpoint, payload);
             const data = res.data;
@@ -162,7 +170,8 @@ export default function AdminPage() {
                     addToast('success', 'Partial Success', `Sent: ${data.success}, Failed: ${data.failure}`);
                 }
             } else {
-                addToast('success', 'Test Sent', `${type.toUpperCase()} test sent successfully.`);
+                const label = type === 'fcm' ? 'NATIVE PUSH' : type === 'webpush' ? 'WEB PUSH' : 'TELEGRAM';
+                addToast('success', 'Test Sent', `${label} test sent successfully.`);
             }
         } catch (err: any) {
             console.error(err);
@@ -396,22 +405,33 @@ export default function AdminPage() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                    <div className="grid grid-cols-3 gap-1 pt-2 border-t border-white/5">
                                         <button
                                             onClick={() => testNotification('fcm', '', u._id)}
-                                            disabled={(!u.fcmTokens?.length && !u.pushSubscriptions?.length) || testLoading === `fcm-${u._id}`}
-                                            className="flex items-center justify-center gap-2 py-2 rounded-xl bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 disabled:opacity-30 transition-colors text-xs font-bold"
+                                            disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
+                                            className="flex items-center justify-center gap-1 py-2 rounded-xl bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 disabled:opacity-10 transition-colors text-[10px] font-bold"
+                                            title="Native App Test"
                                         >
-                                            {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-3 h-3" />}
-                                            Test Push
+                                            {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Smartphone className="w-3 h-3" />}
+                                            Native
+                                        </button>
+                                        <button
+                                            onClick={() => testNotification('webpush', '', u._id)}
+                                            disabled={!u.pushSubscriptions?.length || testLoading === `webpush-${u._id}`}
+                                            className="flex items-center justify-center gap-1 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 disabled:opacity-10 transition-colors text-[10px] font-bold"
+                                            title="Web Browser Test"
+                                        >
+                                            {testLoading === `webpush-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-3 h-3" />}
+                                            Web
                                         </button>
                                         <button
                                             onClick={() => testNotification('telegram', u.telegramChatId!, u._id)}
                                             disabled={!u.telegramChatId || testLoading === `telegram-${u._id}`}
-                                            className="flex items-center justify-center gap-2 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 disabled:opacity-30 transition-colors text-xs font-bold"
+                                            className="flex items-center justify-center gap-1 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 disabled:opacity-10 transition-colors text-[10px] font-bold"
+                                            title="Telegram Test"
                                         >
                                             {testLoading === `telegram-${u._id}` ? <Spinner size="sm" /> : <Send className="w-3 h-3" />}
-                                            Test Telegram
+                                            Telegram
                                         </button>
                                     </div>
                                 </div>
@@ -461,19 +481,27 @@ export default function AdminPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
+                                                <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         onClick={() => testNotification('fcm', '', u._id)}
-                                                        disabled={(!u.fcmTokens?.length && !u.pushSubscriptions?.length) || testLoading === `fcm-${u._id}`}
-                                                        className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-30 transition-colors text-fuchsia-400"
-                                                        title="Test Push (FCM + Web)"
+                                                        disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
+                                                        className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-20 transition-colors text-fuchsia-400"
+                                                        title="Test Native Push"
                                                     >
-                                                        {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-4 h-4" />}
+                                                        {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Smartphone className="w-4 h-4" />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => testNotification('webpush', '', u._id)}
+                                                        disabled={!u.pushSubscriptions?.length || testLoading === `webpush-${u._id}`}
+                                                        className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-20 transition-colors text-orange-400"
+                                                        title="Test Web Push"
+                                                    >
+                                                        {testLoading === `webpush-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-4 h-4" />}
                                                     </button>
                                                     <button
                                                         onClick={() => testNotification('telegram', u.telegramChatId!, u._id)}
                                                         disabled={!u.telegramChatId || testLoading === `telegram-${u._id}`}
-                                                        className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-30 transition-colors text-sky-400"
+                                                        className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-20 transition-colors text-sky-400"
                                                         title="Test Telegram"
                                                     >
                                                         {testLoading === `telegram-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
@@ -499,10 +527,11 @@ export default function AdminPage() {
                             <form onSubmit={sendBroadcast} className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Target Audience</label>
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                         {[
                                             { id: 'all', label: 'All Users', icon: Users },
                                             { id: 'fcm', label: 'App Only', icon: Smartphone },
+                                            { id: 'webpush', label: 'Web Only', icon: Bell },
                                             { id: 'telegram', label: 'Telegram Only', icon: Send }
                                         ].map(opt => (
                                             <div
