@@ -53,8 +53,10 @@ const Sidebar = () => {
     };
 
     const handleSignOut = () => {
-        logout();
-        router.push("/");
+        if (window.confirm("Are you sure you want to log out?")) {
+            logout();
+            router.push("/");
+        }
     };
 
     const themeIcon = !mounted ? <div className="w-6 h-6" /> : (theme === "dark" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />);
