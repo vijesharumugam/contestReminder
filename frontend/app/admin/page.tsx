@@ -27,6 +27,7 @@ interface UserItem {
     role: string;
     telegramChatId?: string;
     fcmTokens?: string[];
+    pushSubscriptions?: Array<{ endpoint: string; keys: { p256dh: string; auth: string } }>;
     createdAt: string;
     preferences: {
         push?: boolean;
@@ -35,7 +36,7 @@ interface UserItem {
 }
 
 interface DashboardStats {
-    users: { total: number; fcm: number; telegram: number };
+    users: { total: number; fcm: number; webPush: number; telegram: number };
     contests: { total: number; upcoming: number };
     lastRun: string | null;
     serverTime: string;
@@ -259,7 +260,7 @@ export default function AdminPage() {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <StatCard
                     label="Total Users"
                     value={stats?.users.total ?? '-'}
@@ -275,6 +276,14 @@ export default function AdminPage() {
                     color="text-fuchsia-400"
                     bg="bg-fuchsia-500/10"
                     border="border-fuchsia-500/20"
+                />
+                <StatCard
+                    label="Web Push Users"
+                    value={stats?.users.webPush ?? '-'}
+                    icon={Bell}
+                    color="text-orange-400"
+                    bg="bg-orange-500/10"
+                    border="border-orange-500/20"
                 />
                 <StatCard
                     label="Telegram Connected"
@@ -371,12 +380,17 @@ export default function AdminPage() {
                                                 ><X className="w-3 h-3" /></button>
                                             </span>
                                         )}
+                                        {(u.pushSubscriptions?.length || 0) > 0 && (
+                                            <span className="px-2 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-[10px] uppercase font-bold border border-orange-500/20 flex items-center gap-1">
+                                                <Bell className="w-3 h-3" /> Web Push
+                                            </span>
+                                        )}
                                         {u.telegramChatId && (
                                             <span className="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-lg text-[10px] uppercase font-bold border border-sky-500/20 flex items-center gap-1">
                                                 <Send className="w-3 h-3" /> Telegram
                                             </span>
                                         )}
-                                        {(!u.fcmTokens?.length && !u.telegramChatId) && (
+                                        {(!u.fcmTokens?.length && !u.pushSubscriptions?.length && !u.telegramChatId) && (
                                             <span className="text-[10px] text-muted-foreground italic">No platforms connected</span>
                                         )}
                                     </div>
@@ -385,7 +399,7 @@ export default function AdminPage() {
                                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
                                         <button
                                             onClick={() => testNotification('fcm', '', u._id)}
-                                            disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
+                                            disabled={(!u.fcmTokens?.length && !u.pushSubscriptions?.length) || testLoading === `fcm-${u._id}`}
                                             className="flex items-center justify-center gap-2 py-2 rounded-xl bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 disabled:opacity-30 transition-colors text-xs font-bold"
                                         >
                                             {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-3 h-3" />}
@@ -434,6 +448,11 @@ export default function AdminPage() {
                                                             ><X className="w-3 h-3" /></button>
                                                         </span>
                                                     )}
+                                                    {(u.pushSubscriptions?.length || 0) > 0 && (
+                                                        <span className="px-2 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-[10px] uppercase font-bold border border-orange-500/20 flex items-center gap-1">
+                                                            <Bell className="w-3 h-3" /> Web Push
+                                                        </span>
+                                                    )}
                                                     {u.telegramChatId && (
                                                         <span className="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-lg text-[10px] uppercase font-bold border border-sky-500/20 flex items-center gap-1">
                                                             <Send className="w-3 h-3" /> Telegram
@@ -445,9 +464,9 @@ export default function AdminPage() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => testNotification('fcm', '', u._id)}
-                                                        disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
+                                                        disabled={(!u.fcmTokens?.length && !u.pushSubscriptions?.length) || testLoading === `fcm-${u._id}`}
                                                         className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-30 transition-colors text-fuchsia-400"
-                                                        title="Test Native Push"
+                                                        title="Test Push (FCM + Web)"
                                                     >
                                                         {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-4 h-4" />}
                                                     </button>

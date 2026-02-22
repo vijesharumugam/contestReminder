@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import PWARegister from "@/components/PWARegister";
 import InstallPrompt from "@/components/InstallPrompt";
 import NativePushWrapper from "@/components/NativePushWrapper";
+import WebPushSubscriber from "@/components/WebPushSubscriber";
 import { InstallProvider } from "@/context/InstallContext";
 import { AuthProvider } from "@/context/AuthContext";
 
@@ -78,6 +79,7 @@ export default function RootLayout({
               <PWARegister />
               <InstallPrompt />
               <NativePushWrapper />
+              <WebPushSubscriber />
             </ThemeProvider>
           </InstallProvider>
         </AuthProvider>

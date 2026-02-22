@@ -5,6 +5,7 @@ const Contest = require('../models/Contest');
 const NotificationLog = require('../models/NotificationLog');
 const { sendTelegramMessage } = require('../services/telegramService');
 const { sendFCMToUser } = require('../services/fcmService');
+const { sendPushToUser } = require('../services/pushService');
 const { authenticate, isAdmin } = require('../middleware/auth');
 
 // All admin routes require authentication + admin role
@@ -18,6 +19,7 @@ router.get('/stats', async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const activeFCM = await User.countDocuments({ "fcmTokens.0": { $exists: true } });
+        const activeWebPush = await User.countDocuments({ "pushSubscriptions.0": { $exists: true } });
         const activeTelegram = await User.countDocuments({ telegramChatId: { $ne: null } });
 
         const now = new Date();
@@ -27,7 +29,7 @@ router.get('/stats', async (req, res) => {
         const lastLog = await NotificationLog.findOne().sort({ sentAt: -1 }).lean();
 
         res.json({
-            users: { total: totalUsers, fcm: activeFCM, telegram: activeTelegram },
+            users: { total: totalUsers, fcm: activeFCM, webPush: activeWebPush, telegram: activeTelegram },
             contests: { total: totalContests, upcoming: upcomingContests },
             lastRun: lastLog ? lastLog.sentAt : null,
             serverTime: new Date().toISOString()
@@ -75,7 +77,7 @@ router.post('/test-telegram', async (req, res) => {
     }
 });
 
-// Test FCM Notification (Native App)
+// Test FCM / Web Push Notification
 router.post('/test-fcm', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "No userId provided" });
@@ -83,21 +85,35 @@ router.post('/test-fcm', async (req, res) => {
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: "User not found" });
-        if (!user.fcmTokens || user.fcmTokens.length === 0) {
-            return res.status(400).json({ error: "User has no FCM tokens (native app not installed)" });
+
+        const results = { fcm: null, webPush: null };
+
+        // Send FCM if available (native app)
+        if (user.fcmTokens && user.fcmTokens.length > 0) {
+            const fcmResult = await sendFCMToUser(user,
+                '🔔 Test Notification',
+                'Native push notifications are working! You will receive contest reminders here.',
+                { url: '/' }
+            );
+            results.fcm = fcmResult;
         }
 
-        const result = await sendFCMToUser(user,
-            '🔔 Test Notification',
-            'Native push notifications are working! You will receive contest reminders here.',
-            { url: '/' }
-        );
-
-        if (result && result.error) {
-            return res.status(500).json({ error: result.error, details: "Firebase initialization failed" });
+        // Send Web Push if available (browser/PWA)
+        if (user.pushSubscriptions && user.pushSubscriptions.length > 0) {
+            await sendPushToUser(user, {
+                title: '🔔 Test Notification',
+                body: 'Web push notifications are working! You will receive contest reminders here.',
+                type: 'test',
+                data: { url: '/' }
+            });
+            results.webPush = { sent: true, subscriptionCount: user.pushSubscriptions.length };
         }
 
-        res.json({ success: true, tokenCount: user.fcmTokens.length, ...result });
+        if (!results.fcm && !results.webPush) {
+            return res.status(400).json({ error: "User has no FCM tokens or web push subscriptions" });
+        }
+
+        res.json({ success: true, results });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -140,6 +156,17 @@ router.post('/send-notification', async (req, res) => {
             results.fcm = true;
         }
 
+        // Send Web Push if requested and available (browser/PWA)
+        if ((channel === 'all' || channel === 'push') && user.pushSubscriptions?.length > 0) {
+            await sendPushToUser(user, {
+                title,
+                body: message,
+                type: 'admin',
+                data: { url: '/' }
+            });
+            results.webPush = true;
+        }
+
         // Send telegram if requested and available
         if ((channel === 'all' || channel === 'telegram') && user.telegramChatId) {
             await sendTelegramMessage(user.telegramChatId, `🔔 *${title}*\n━━━━━━━━━━━━━━━━━━━━\n\n${message}`);
@@ -162,10 +189,11 @@ router.post('/broadcast', async (req, res) => {
         let query = {};
         if (target === 'fcm') query = { "fcmTokens.0": { $exists: true } };
         else if (target === 'telegram') query = { telegramChatId: { $ne: null } };
+        else if (target === 'push') query = { $or: [{ "fcmTokens.0": { $exists: true } }, { "pushSubscriptions.0": { $exists: true } }] };
 
         // Ensure at least one contact method exists if targeting 'all'
         if (target === 'all') {
-            query = { $or: [{ "fcmTokens.0": { $exists: true } }, { telegramChatId: { $ne: null } }] };
+            query = { $or: [{ "fcmTokens.0": { $exists: true } }, { "pushSubscriptions.0": { $exists: true } }, { telegramChatId: { $ne: null } }] };
         }
 
         const users = await User.find(query);
@@ -173,9 +201,18 @@ router.post('/broadcast', async (req, res) => {
 
         await Promise.allSettled(users.map(async (user) => {
             try {
-                // FCM
-                if (user.fcmTokens?.length > 0 && (target === 'all' || target === 'fcm')) {
+                // FCM (native app)
+                if (user.fcmTokens?.length > 0 && (target === 'all' || target === 'fcm' || target === 'push')) {
                     await sendFCMToUser(user, title, message, { url: '/' });
+                }
+                // Web Push (browser/PWA)
+                if (user.pushSubscriptions?.length > 0 && (target === 'all' || target === 'push')) {
+                    await sendPushToUser(user, {
+                        title,
+                        body: message,
+                        type: 'broadcast',
+                        data: { url: '/' }
+                    });
                 }
                 // Telegram
                 if (user.telegramChatId && (target === 'all' || target === 'telegram')) {

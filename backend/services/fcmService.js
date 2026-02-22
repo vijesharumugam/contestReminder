@@ -73,11 +73,17 @@ const sendFCMToUser = async (user, title, body, data = {}) => {
         }
     }
 
-    // Remove invalid tokens
+    // Remove invalid tokens from DB (works with both Mongoose docs and lean objects)
     if (invalidTokens.length > 0) {
-        user.fcmTokens = user.fcmTokens.filter(t => !invalidTokens.includes(t));
-        await user.save();
-        console.log(`[FCM] Removed ${invalidTokens.length} invalid token(s) for ${user.email}`);
+        try {
+            await User.updateOne(
+                { _id: user._id },
+                { $pull: { fcmTokens: { $in: invalidTokens } } }
+            );
+            console.log(`[FCM] Removed ${invalidTokens.length} invalid token(s) for ${user.email}`);
+        } catch (cleanupErr) {
+            console.error(`[FCM] Failed to clean up tokens for ${user.email}:`, cleanupErr.message);
+        }
     }
 
     return { success: successCount, failure: failureCount, removed: invalidTokens.length };
