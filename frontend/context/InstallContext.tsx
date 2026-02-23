@@ -26,7 +26,7 @@ interface InstallContextType {
 
 const InstallContext = createContext<InstallContextType | undefined>(undefined);
 
-export const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.3.0/app-release.apk";
+export const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v2.0.0/app-release.apk";
 
 const detectPlatform = (): Platform => {
     if (typeof window === "undefined") return "desktop";
