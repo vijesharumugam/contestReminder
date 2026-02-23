@@ -9,9 +9,14 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.11.0
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
       # User needs to add these secrets in the Render Dashboard:
       # - MONGODB_URI
-      # - JWT_SECRET
       # - CLIST_USERNAME
       # - CLIST_API_KEY
       # - TELEGRAM_BOT_TOKEN

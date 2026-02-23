@@ -1,6 +1,20 @@
 // Load environment variables FIRST before any other imports
+const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const dotenv = require('dotenv');
+
+// Load env-specific files first (e.g. .env.production), then generic .env.
+const envName = process.env.NODE_ENV;
+[
+    envName ? path.resolve(__dirname, `.env.${envName}`) : null,
+    path.resolve(__dirname, '.env'),
+    envName ? path.resolve(__dirname, `../.env.${envName}`) : null,
+    path.resolve(__dirname, '../.env'),
+].filter(Boolean).forEach((envPath) => {
+    if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath, override: false, quiet: true });
+    }
+});
 
 // Core dependencies
 const express = require('express');
