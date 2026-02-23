@@ -5,13 +5,14 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import Link from "next/link";
 import {
-    Users, Send, Lock, LayoutDashboard, CheckCircle, AlertCircle,
-    ShieldAlert, X, Bell, Smartphone, RefreshCw, Server,
-    Calendar, Activity, Radio, Search, Filter
+    Users, Send, LayoutDashboard, CheckCircle, AlertCircle,
+    ShieldAlert, X, Smartphone, RefreshCw, Server,
+    Calendar, Activity, Radio, Search
 } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 
 // --- Types ---
 interface Toast {
@@ -27,7 +28,6 @@ interface UserItem {
     role: string;
     telegramChatId?: string;
     fcmTokens?: string[];
-    pushSubscriptions?: Array<{ endpoint: string; keys: { p256dh: string; auth: string } }>;
     createdAt: string;
     preferences: {
         push?: boolean;
@@ -36,7 +36,7 @@ interface UserItem {
 }
 
 interface DashboardStats {
-    users: { total: number; fcm: number; webPush: number; telegram: number };
+    users: { total: number; fcm: number; telegram: number };
     contests: { total: number; upcoming: number };
     lastRun: string | null;
     serverTime: string;
@@ -50,8 +50,31 @@ interface SystemLog {
     sentAt: string;
 }
 
+interface FcmTestResponse {
+    success?: number;
+    failure?: number;
+    removed?: number;
+}
+
+interface StatCardProps {
+    label: string;
+    value: string | number;
+    subValue?: string;
+    icon: LucideIcon;
+    color: string;
+    bg: string;
+    border: string;
+}
+
+interface TabButtonProps {
+    active: boolean;
+    onClick: () => void;
+    icon: LucideIcon;
+    children: React.ReactNode;
+}
+
 export default function AdminPage() {
-    const { user, isLoaded, isSignedIn, isAdmin } = useAuth();
+    const { isLoaded, isSignedIn, isAdmin } = useAuth();
 
     // Data States
     const [users, setUsers] = useState<UserItem[]>([]);
@@ -122,7 +145,7 @@ export default function AdminPage() {
             await api.post(`/api/admin/clear-fcm`, { userId });
             addToast('success', 'Tokens Cleared', 'FCM tokens reset.');
             fetchAllData();
-        } catch (err) {
+        } catch {
             addToast('error', 'Failed', 'Could not clear tokens.');
         } finally {
             setLoading(false);
@@ -138,44 +161,45 @@ export default function AdminPage() {
             await api.post('/api/admin/broadcast', broadcastForm);
             addToast('success', 'Broadcast Sent', 'Message queued for delivery.');
             setBroadcastForm({ title: "", message: "", target: "all" });
-        } catch (err) {
+        } catch {
             addToast('error', 'Broadcast Failed', 'Could not send message.');
         } finally {
             setBroadcastLoading(false);
         }
     };
 
-    const testNotification = async (type: 'fcm' | 'telegram' | 'webpush', id: string, userId: string) => {
+    const testNotification = async (type: 'fcm' | 'telegram', id: string, userId: string) => {
         const key = `${type}-${userId}`;
         setTestLoading(key);
         try {
             let endpoint = '/api/admin/test-fcm';
-            let payload: any = { userId };
+            let payload: { userId?: string; chatId?: string } = { userId };
 
             if (type === 'telegram') {
                 endpoint = '/api/admin/test-telegram';
                 payload = { chatId: id };
-            } else if (type === 'webpush') {
-                endpoint = '/api/admin/test-web-push';
-                payload = { userId };
             }
 
             const res = await api.post(endpoint, payload);
-            const data = res.data;
+            const data = res.data as FcmTestResponse;
 
-            if (type === 'fcm' && data.failure > 0) {
-                if (data.success === 0) {
-                    addToast('error', 'Sending Failed', `All tokens failed. ${data.removed} invalid tokens removed.`);
+            if (type === 'fcm' && (data.failure ?? 0) > 0) {
+                if ((data.success ?? 0) === 0) {
+                    addToast('error', 'Sending Failed', `All tokens failed. ${data.removed ?? 0} invalid tokens removed.`);
                 } else {
-                    addToast('success', 'Partial Success', `Sent: ${data.success}, Failed: ${data.failure}`);
+                    addToast('success', 'Partial Success', `Sent: ${data.success ?? 0}, Failed: ${data.failure ?? 0}`);
                 }
             } else {
-                const label = type === 'fcm' ? 'NATIVE PUSH' : type === 'webpush' ? 'WEB PUSH' : 'TELEGRAM';
+                const label = type === 'fcm' ? 'NATIVE PUSH' : 'TELEGRAM';
                 addToast('success', 'Test Sent', `${label} test sent successfully.`);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            const msg = err.response?.data?.error || err.message || 'Unknown error';
+            let msg = 'Unknown error';
+            if (typeof err === 'object' && err !== null) {
+                const maybeErr = err as { message?: string; response?: { data?: { error?: string } } };
+                msg = maybeErr.response?.data?.error || maybeErr.message || msg;
+            }
             addToast('error', 'Test Failed', `${msg}`);
         } finally {
             setTestLoading(null);
@@ -287,14 +311,6 @@ export default function AdminPage() {
                     border="border-fuchsia-500/20"
                 />
                 <StatCard
-                    label="Web Push Users"
-                    value={stats?.users.webPush ?? '-'}
-                    icon={Bell}
-                    color="text-orange-400"
-                    bg="bg-orange-500/10"
-                    border="border-orange-500/20"
-                />
-                <StatCard
                     label="Telegram Connected"
                     value={stats?.users.telegram ?? '-'}
                     icon={Send}
@@ -389,23 +405,18 @@ export default function AdminPage() {
                                                 ><X className="w-3 h-3" /></button>
                                             </span>
                                         )}
-                                        {(u.pushSubscriptions?.length || 0) > 0 && (
-                                            <span className="px-2 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-[10px] uppercase font-bold border border-orange-500/20 flex items-center gap-1">
-                                                <Bell className="w-3 h-3" /> Web Push
-                                            </span>
-                                        )}
                                         {u.telegramChatId && (
                                             <span className="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-lg text-[10px] uppercase font-bold border border-sky-500/20 flex items-center gap-1">
                                                 <Send className="w-3 h-3" /> Telegram
                                             </span>
                                         )}
-                                        {(!u.fcmTokens?.length && !u.pushSubscriptions?.length && !u.telegramChatId) && (
+                                        {(!u.fcmTokens?.length && !u.telegramChatId) && (
                                             <span className="text-[10px] text-muted-foreground italic">No platforms connected</span>
                                         )}
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="grid grid-cols-3 gap-1 pt-2 border-t border-white/5">
+                                    <div className="grid grid-cols-2 gap-1 pt-2 border-t border-white/5">
                                         <button
                                             onClick={() => testNotification('fcm', '', u._id)}
                                             disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
@@ -414,15 +425,6 @@ export default function AdminPage() {
                                         >
                                             {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Smartphone className="w-3 h-3" />}
                                             Native
-                                        </button>
-                                        <button
-                                            onClick={() => testNotification('webpush', '', u._id)}
-                                            disabled={!u.pushSubscriptions?.length || testLoading === `webpush-${u._id}`}
-                                            className="flex items-center justify-center gap-1 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 disabled:opacity-10 transition-colors text-[10px] font-bold"
-                                            title="Web Browser Test"
-                                        >
-                                            {testLoading === `webpush-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-3 h-3" />}
-                                            Web
                                         </button>
                                         <button
                                             onClick={() => testNotification('telegram', u.telegramChatId!, u._id)}
@@ -468,11 +470,6 @@ export default function AdminPage() {
                                                             ><X className="w-3 h-3" /></button>
                                                         </span>
                                                     )}
-                                                    {(u.pushSubscriptions?.length || 0) > 0 && (
-                                                        <span className="px-2 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-[10px] uppercase font-bold border border-orange-500/20 flex items-center gap-1">
-                                                            <Bell className="w-3 h-3" /> Web Push
-                                                        </span>
-                                                    )}
                                                     {u.telegramChatId && (
                                                         <span className="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-lg text-[10px] uppercase font-bold border border-sky-500/20 flex items-center gap-1">
                                                             <Send className="w-3 h-3" /> Telegram
@@ -489,14 +486,6 @@ export default function AdminPage() {
                                                         title="Test Native Push"
                                                     >
                                                         {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Smartphone className="w-4 h-4" />}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => testNotification('webpush', '', u._id)}
-                                                        disabled={!u.pushSubscriptions?.length || testLoading === `webpush-${u._id}`}
-                                                        className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-20 transition-colors text-orange-400"
-                                                        title="Test Web Push"
-                                                    >
-                                                        {testLoading === `webpush-${u._id}` ? <Spinner size="sm" /> : <Bell className="w-4 h-4" />}
                                                     </button>
                                                     <button
                                                         onClick={() => testNotification('telegram', u.telegramChatId!, u._id)}
@@ -531,7 +520,6 @@ export default function AdminPage() {
                                         {[
                                             { id: 'all', label: 'All Users', icon: Users },
                                             { id: 'fcm', label: 'App Only', icon: Smartphone },
-                                            { id: 'webpush', label: 'Web Only', icon: Bell },
                                             { id: 'telegram', label: 'Telegram Only', icon: Send }
                                         ].map(opt => (
                                             <div
@@ -631,7 +619,7 @@ export default function AdminPage() {
 
 // --- Subcomponents ---
 
-function StatCard({ label, value, subValue, icon: Icon, color, bg, border }: any) {
+function StatCard({ label, value, subValue, icon: Icon, color, bg, border }: StatCardProps) {
     return (
         <div className={cn("glass p-5 rounded-2xl flex items-center justify-between border", border)}>
             <div>
@@ -646,7 +634,7 @@ function StatCard({ label, value, subValue, icon: Icon, color, bg, border }: any
     );
 }
 
-function TabButton({ active, onClick, icon: Icon, children }: any) {
+function TabButton({ active, onClick, icon: Icon, children }: TabButtonProps) {
     return (
         <button
             onClick={onClick}

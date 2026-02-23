@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, generateTelegramConnectToken } = require('../middleware/auth');
 
 // Get authenticated user's full status
 router.get('/me', authenticate, async (req, res) => {
@@ -29,79 +29,17 @@ router.put('/preferences', authenticate, async (req, res) => {
     }
 });
 
-// ===== PUSH SUBSCRIPTION ROUTES =====
-
-// Subscribe to push notifications
-router.post('/push/subscribe', authenticate, async (req, res) => {
-    const { subscription } = req.body;
-    if (!subscription) return res.status(400).json({ error: "Missing subscription" });
-
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        // Check if this subscription endpoint already exists
-        const exists = user.pushSubscriptions.some(s => s.endpoint === subscription.endpoint);
-        if (!exists) {
-            user.pushSubscriptions.push({
-                endpoint: subscription.endpoint,
-                keys: subscription.keys
-            });
-        }
-
-        user.preferences.push = true;
-        await user.save();
-
-        console.log(`[Push] Subscription added for ${user.email} (${user.pushSubscriptions.length} total)`);
-
-        const userObj = user.toObject();
-        delete userObj.password;
-        res.json({ success: true, user: userObj });
-    } catch (error) {
-        console.error('[Push] Subscribe error:', error);
-        res.status(500).json({ error: error.message });
-    }
+// ===== WEB PUSH ROUTES (Deprecated) =====
+router.post('/push/subscribe', authenticate, (req, res) => {
+    res.status(410).json({ error: "Web push is deprecated. Use native app notifications." });
 });
 
-// Unsubscribe from push notifications
-router.post('/push/unsubscribe', authenticate, async (req, res) => {
-    const { endpoint } = req.body;
-
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        if (endpoint) {
-            // Remove specific subscription
-            user.pushSubscriptions = user.pushSubscriptions.filter(s => s.endpoint !== endpoint);
-        } else {
-            // Remove all subscriptions
-            user.pushSubscriptions = [];
-        }
-
-        // If no subscriptions left, disable push preference
-        if (user.pushSubscriptions.length === 0) {
-            user.preferences.push = false;
-        }
-
-        await user.save();
-
-        console.log(`[Push] Unsubscribed for ${user.email} (${user.pushSubscriptions.length} remaining)`);
-
-        const userObj = user.toObject();
-        delete userObj.password;
-        res.json({ success: true, user: userObj });
-    } catch (error) {
-        console.error('[Push] Unsubscribe error:', error);
-        res.status(500).json({ error: error.message });
-    }
+router.post('/push/unsubscribe', authenticate, (req, res) => {
+    res.status(410).json({ error: "Web push is deprecated. Use native app notifications." });
 });
 
-// Get VAPID public key (public route - no auth needed)
 router.get('/push/vapid-key', (req, res) => {
-    const key = process.env.VAPID_PUBLIC_KEY;
-    if (!key) return res.status(500).json({ error: "VAPID key not configured" });
-    res.json({ publicKey: key });
+    res.status(410).json({ error: "Web push is deprecated. Use native app notifications." });
 });
 
 // ===== TELEGRAM ROUTES =====
@@ -123,6 +61,16 @@ router.post('/disconnect-telegram', authenticate, async (req, res) => {
         res.json(userObj);
     } catch (error) {
         console.error('[Users] Disconnect Telegram error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Generate short-lived secure token for Telegram connect deep link
+router.get('/telegram/connect-token', authenticate, async (req, res) => {
+    try {
+        const token = generateTelegramConnectToken(req.user._id.toString());
+        res.json({ token });
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });

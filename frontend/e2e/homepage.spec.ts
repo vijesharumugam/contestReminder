@@ -46,8 +46,8 @@ test.describe('Home Page — Contest Listing & Filtering', () => {
         if (await tomorrowBtn.isVisible()) {
             await tomorrowBtn.click();
             await expect(page.getByText(/select date/i)).not.toBeVisible();
-            // Look for the reset 'X' button or the active filter indicator
-            await expect(page.locator('button').filter({ has: page.locator('svg.lucide-x') }).or(page.getByText(/tomorrow/i))).toBeVisible();
+            // Active date filter chip should be visible after selection
+            await expect(page.getByRole('button', { name: /clear date filter/i })).toBeVisible();
         }
     });
 

@@ -2,6 +2,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const User = require('../models/User');
 const Contest = require('../models/Contest');
+const { verifyTelegramConnectToken } = require('../middleware/auth');
 
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -16,7 +17,7 @@ if (token) {
     // Handle /start <token> - when user clicks the connect link
     bot.onText(/\/start (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
-        const connectToken = match[1]; // The captured token (user's MongoDB _id)
+        const connectToken = match[1];
 
         console.log(`[Telegram] Received /start command with token: ${connectToken}, chatId: ${chatId}`);
 
@@ -26,8 +27,22 @@ if (token) {
         }
 
         try {
+            let userId = null;
+            try {
+                const decoded = verifyTelegramConnectToken(connectToken);
+                userId = decoded.userId;
+            } catch (tokenErr) {
+                // Backward compatibility for previously generated raw-id links
+                if (/^[a-f0-9]{24}$/i.test(connectToken)) {
+                    userId = connectToken;
+                } else {
+                    await bot.sendMessage(chatId, "❌ Invalid or expired connection link. Please reconnect from Settings.");
+                    return;
+                }
+            }
+
             // Find user by MongoDB _id
-            let user = await User.findById(connectToken);
+            let user = await User.findById(userId);
             console.log(`[Telegram] User lookup result:`, user ? `Found: ${user.email}` : 'Not found');
 
             if (user) {

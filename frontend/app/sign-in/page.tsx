@@ -177,7 +177,6 @@ export default function SignInPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder={mode === "register" ? "Create a strong password" : "Enter your password"}
-                                        minLength={mode === "register" ? 6 : undefined}
                                         className="w-full border border-border bg-background rounded-lg px-3 pr-10 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                                         autoComplete={mode === "login" ? "current-password" : "new-password"}
                                     />

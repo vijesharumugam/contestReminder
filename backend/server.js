@@ -17,6 +17,7 @@ const adminRoutes = require('./routes/admin');
 const { fetchAndSaveContests } = require('./services/clistService');
 const { sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
 const { initializeFirebase } = require('./services/fcmService');
+const { authenticate, isAdmin } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,7 +43,7 @@ app.get('/', (req, res) => {
 });
 
 // Manual trigger for testing (Optional)
-app.get('/api/trigger-fetch', async (req, res) => {
+app.get('/api/trigger-fetch', authenticate, isAdmin, async (req, res) => {
     await fetchAndSaveContests();
     res.send('Fetch triggered');
 });

@@ -9,10 +9,13 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'vijesharumugam26@gmail.com';
-const ADMIN_PASSWORD = '12345678';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 async function seedAdmin() {
     try {
+        if (!ADMIN_PASSWORD) {
+            throw new Error('ADMIN_PASSWORD environment variable is required to seed admin user');
+        }
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('[Seed] Connected to MongoDB');
 

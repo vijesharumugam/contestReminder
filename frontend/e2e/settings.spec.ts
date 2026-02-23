@@ -23,7 +23,7 @@ test.describe('Settings Page — Authenticated', () => {
         await loginAs(page, TEST_USER.email, TEST_USER.password);
         await page.goto('/settings');
         // Wait for settings content to load
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -41,16 +41,21 @@ test.describe('Settings Page — Authenticated', () => {
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 3. Telegram connect button or connected status shows
+    // 3. Telegram section should show one valid action/state
     // ─────────────────────────────────────────────────────────────────────────
     test('should show Telegram connect button or connected status', async ({ page }) => {
         const connectBtn = page.getByRole('link', { name: /connect telegram/i });
-        const connectedBadge = page.getByText(/connected/i);
+        const preparingBtn = page.getByRole('button', { name: /preparing telegram link/i });
+        const connectedBadge = page.locator('span').filter({ hasText: /^Connected$/i }).first();
 
-        const isConnectVisible = await connectBtn.isVisible();
-        const isConnectedVisible = await connectedBadge.isVisible();
-
-        expect(isConnectVisible || isConnectedVisible).toBeTruthy();
+        await expect
+            .poll(async () => {
+                if (await connectBtn.isVisible()) return 'connect';
+                if (await connectedBadge.isVisible()) return 'connected';
+                if (await preparingBtn.isVisible()) return 'preparing';
+                return 'none';
+            }, { timeout: 15_000 })
+            .not.toBe('none');
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -122,14 +127,12 @@ test.describe('Settings Page — Authenticated', () => {
     // ─────────────────────────────────────────────────────────────────────────
     // 10. Delete account — requires password to confirm
     // ─────────────────────────────────────────────────────────────────────────
-    test('should show error when Delete Forever is clicked without password', async ({ page }) => {
+    test('should keep Delete Forever disabled until password is entered', async ({ page }) => {
         await page.getByRole('button', { name: /delete account/i }).click();
         await expect(page.getByRole('heading', { name: /delete your account\?/i })).toBeVisible();
 
-        // Click Delete Forever without filling the password
-        await page.getByRole('button', { name: /delete forever/i }).click();
-
-        await expect(page.getByText(/password is required/i)).toBeVisible();
+        const deleteForeverBtn = page.getByRole('button', { name: /delete forever/i });
+        await expect(deleteForeverBtn).toBeDisabled();
     });
 
     // ─────────────────────────────────────────────────────────────────────────

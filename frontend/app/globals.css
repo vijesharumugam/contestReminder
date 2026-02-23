@@ -52,6 +52,9 @@
   }
 
   :root {
+    --font-inter: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --font-outfit: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+
     /* Light Mode */
     --background: 210 40% 98%;
     --foreground: 222 47% 3%;

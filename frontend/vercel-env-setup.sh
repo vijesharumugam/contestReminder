@@ -12,10 +12,10 @@ vercel link
 
 # Add environment variables
 vercel env add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY production
-# When prompted, paste: pk_test_ZmFzdC1yYWJiaXQtNTcuY2xlcmsuYWNjb3VudHMuZGV2JA
+# When prompted, paste your Clerk publishable key (pk_live_... or pk_test_...)
 
 vercel env add CLERK_SECRET_KEY production
-# When prompted, paste: sk_test_YLnek3ThGO5LC9iDBC3anTg1KZzAJ4Qo1B8HEq14Pg
+# When prompted, paste your Clerk secret key (sk_live_... or sk_test_...)
 
 vercel env add NEXT_PUBLIC_CLERK_SIGN_IN_URL production
 # When prompted, paste: /sign-in

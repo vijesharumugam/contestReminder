@@ -43,6 +43,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ACCESS_TOKEN_KEY = "cr_access_token";
 const REFRESH_TOKEN_KEY = "cr_refresh_token";
 
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+    if (typeof error === "object" && error !== null) {
+        const maybe = error as {
+            message?: string;
+            response?: { status?: number; data?: { error?: string } };
+        };
+        return maybe.response?.data?.error || maybe.message || fallback;
+    }
+    return fallback;
+};
+
+const getApiStatus = (error: unknown): number | undefined => {
+    if (typeof error === "object" && error !== null) {
+        const maybe = error as { response?: { status?: number } };
+        return maybe.response?.status;
+    }
+    return undefined;
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -104,11 +123,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             scheduleRefresh(newAccess);
 
             return true;
-        } catch (error: any) {
-            console.error("[Auth] Silent refresh failed:", error?.response?.data?.error || error.message);
+        } catch (error: unknown) {
+            console.error("[Auth] Silent refresh failed:", getApiErrorMessage(error, "Silent refresh failed"));
 
             // If refresh token is expired or invalid, force logout
-            if (error?.response?.status === 401) {
+            if (getApiStatus(error) === 401) {
                 clearTokens();
                 setUser(null);
             }
@@ -242,8 +261,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             scheduleRefresh(accessToken);
 
             return { success: true };
-        } catch (error: any) {
-            const message = error.response?.data?.error || "Login failed. Please try again.";
+        } catch (error: unknown) {
+            const message = getApiErrorMessage(error, "Login failed. Please try again.");
             return { success: false, error: message };
         }
     }, [scheduleRefresh]);
@@ -258,8 +277,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             scheduleRefresh(accessToken);
 
             return { success: true };
-        } catch (error: any) {
-            const message = error.response?.data?.error || "Registration failed. Please try again.";
+        } catch (error: unknown) {
+            const message = getApiErrorMessage(error, "Registration failed. Please try again.");
             return { success: false, error: message };
         }
     }, [scheduleRefresh]);
@@ -297,8 +316,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             return { success: true };
-        } catch (error: any) {
-            const message = error.response?.data?.error || "Failed to change password.";
+        } catch (error: unknown) {
+            const message = getApiErrorMessage(error, "Failed to change password.");
             return { success: false, error: message };
         }
     }, [scheduleRefresh]);
@@ -308,8 +327,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await api.put("/api/auth/profile", data);
             setUser(res.data);
             return { success: true };
-        } catch (error: any) {
-            const message = error.response?.data?.error || "Failed to update profile.";
+        } catch (error: unknown) {
+            const message = getApiErrorMessage(error, "Failed to update profile.");
             return { success: false, error: message };
         }
     }, []);
@@ -320,8 +339,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearTokens();
             setUser(null);
             return { success: true };
-        } catch (error: any) {
-            const message = error.response?.data?.error || "Failed to delete account.";
+        } catch (error: unknown) {
+            const message = getApiErrorMessage(error, "Failed to delete account.");
             return { success: false, error: message };
         }
     }, []);

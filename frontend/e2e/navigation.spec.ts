@@ -31,7 +31,9 @@ test.describe('Navigation — Sidebar', () => {
     // 2. ContestRemind logo / brand text is present
     // ─────────────────────────────────────────────────────────────────────────
     test('should display ContestRemind brand in sidebar', async ({ page }) => {
-        await expect(page.getByText(/contestremind/i).first()).toBeVisible();
+        await page.setViewportSize({ width: 1440, height: 900 });
+        const desktopSidebar = page.locator('aside').first();
+        await expect(desktopSidebar.getByAltText('Logo')).toBeVisible();
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -64,14 +66,14 @@ test.describe('Navigation — Sidebar', () => {
     // 5. Settings navigation item exists
     // ─────────────────────────────────────────────────────────────────────────
     test('should have a Settings navigation item', async ({ page }) => {
-        await expect(page.getByRole('link', { name: /settings/i })).toBeVisible();
+        await expect(page.getByTitle('Settings')).toBeVisible();
     });
 
     // ─────────────────────────────────────────────────────────────────────────
     // 6. Calendar navigation item exists
     // ─────────────────────────────────────────────────────────────────────────
     test('should have a Calendar navigation item', async ({ page }) => {
-        await expect(page.getByRole('link', { name: /calendar/i })).toBeVisible();
+        await expect(page.getByTitle('Calendar')).toBeVisible();
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -91,11 +93,11 @@ test.describe('Navigation — Sidebar', () => {
     test('should show bottom navigation on mobile viewport', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('/');
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
-        // Mobile bottom nav typically floats fixed at the bottom
-        const nav = page.locator('nav').last();
-        await expect(nav).toBeVisible();
+        // Mobile bottom navigation container
+        const mobileBottomNav = page.locator('div[class*="md:hidden"][class*="fixed bottom-0"]').first();
+        await expect(mobileBottomNav).toBeVisible();
     });
 
     // ─────────────────────────────────────────────────────────────────────────

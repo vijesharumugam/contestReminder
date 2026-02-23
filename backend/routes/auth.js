@@ -133,7 +133,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
         if (!user) return res.status(401).json({ error: "User not found" });
 
         // Token rotation: issue a completely new pair
-        const tokens = generateTokenPair(user._id);
+        const tokens = generateTokenPair(user._id, !!decoded.rememberMe);
 
         res.json({
             ...tokens,

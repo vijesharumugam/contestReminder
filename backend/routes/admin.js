@@ -5,7 +5,6 @@ const Contest = require('../models/Contest');
 const NotificationLog = require('../models/NotificationLog');
 const { sendTelegramMessage } = require('../services/telegramService');
 const { sendFCMToUser } = require('../services/fcmService');
-const { sendPushToUser } = require('../services/pushService');
 const { authenticate, isAdmin } = require('../middleware/auth');
 
 // All admin routes require authentication + admin role
@@ -22,7 +21,8 @@ router.get('/health', async (req, res) => {
                 hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT
             },
             webPush: {
-                hasVapidKeys: !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY)
+                deprecated: true,
+                hasVapidKeys: false
             },
             telegram: {
                 initialized: !!process.env.TELEGRAM_BOT_TOKEN
@@ -42,8 +42,7 @@ router.get('/stats', async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const activeFCM = await User.countDocuments({ "fcmTokens.0": { $exists: true } });
-        const activeWebPush = await User.countDocuments({ "pushSubscriptions.0": { $exists: true } });
-        const activeTelegram = await User.countDocuments({ telegramChatId: { $ne: null } });
+        const activeTelegram = await User.countDocuments({ telegramChatId: { $exists: true, $ne: null } });
 
         const now = new Date();
         const upcomingContests = await Contest.countDocuments({ startTime: { $gte: now } });
@@ -52,7 +51,7 @@ router.get('/stats', async (req, res) => {
         const lastLog = await NotificationLog.findOne().sort({ sentAt: -1 }).lean();
 
         res.json({
-            users: { total: totalUsers, fcm: activeFCM, webPush: activeWebPush, telegram: activeTelegram },
+            users: { total: totalUsers, fcm: activeFCM, webPush: 0, telegram: activeTelegram },
             contests: { total: totalContests, upcoming: upcomingContests },
             lastRun: lastLog ? lastLog.sentAt : null,
             serverTime: new Date().toISOString()
@@ -126,31 +125,9 @@ router.post('/test-fcm', async (req, res) => {
     }
 });
 
-// Test Web Push Notification (Browser/PWA)
+// Web push is intentionally disabled. Native FCM + Telegram are supported.
 router.post('/test-web-push', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: "No userId provided" });
-
-    try {
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ error: "User not found" });
-        if (!user.pushSubscriptions || user.pushSubscriptions.length === 0) {
-            return res.status(400).json({ error: "User has no web push subscriptions" });
-        }
-
-        console.log(`[Admin] Manually triggering WebPush test for ${user.email}...`);
-        await sendPushToUser(user, {
-            title: '🔔 Test Notification',
-            body: 'Web push notifications are working! You will receive contest reminders here.',
-            type: 'test',
-            data: { url: '/' }
-        });
-
-        res.json({ success: true, subscriptionCount: user.pushSubscriptions.length });
-    } catch (error) {
-        console.error(`[Admin] WebPush test error for user ${userId}:`, error);
-        res.status(500).json({ error: error.message });
-    }
+    res.status(410).json({ error: "Web push is deprecated. Use native app notifications." });
 });
 
 // Clear FCM Tokens (Fix duplicates)
@@ -190,17 +167,6 @@ router.post('/send-notification', async (req, res) => {
             results.fcm = true;
         }
 
-        // Send Web Push if requested and available (browser/PWA)
-        if ((channel === 'all' || channel === 'push') && user.pushSubscriptions?.length > 0) {
-            await sendPushToUser(user, {
-                title,
-                body: message,
-                type: 'admin',
-                data: { url: '/' }
-            });
-            results.webPush = true;
-        }
-
         // Send telegram if requested and available
         if ((channel === 'all' || channel === 'telegram') && user.telegramChatId) {
             await sendTelegramMessage(user.telegramChatId, `🔔 *${title}*\n━━━━━━━━━━━━━━━━━━━━\n\n${message}`);
@@ -222,13 +188,11 @@ router.post('/broadcast', async (req, res) => {
     try {
         let query = {};
         if (target === 'fcm') query = { "fcmTokens.0": { $exists: true } };
-        else if (target === 'webpush') query = { "pushSubscriptions.0": { $exists: true } };
-        else if (target === 'telegram') query = { telegramChatId: { $ne: null } };
-        else if (target === 'push') query = { $or: [{ "fcmTokens.0": { $exists: true } }, { "pushSubscriptions.0": { $exists: true } }] };
+        else if (target === 'telegram') query = { telegramChatId: { $exists: true, $ne: null } };
 
         // Ensure at least one contact method exists if targeting 'all'
         if (target === 'all') {
-            query = { $or: [{ "fcmTokens.0": { $exists: true } }, { "pushSubscriptions.0": { $exists: true } }, { telegramChatId: { $ne: null } }] };
+            query = { $or: [{ "fcmTokens.0": { $exists: true } }, { telegramChatId: { $exists: true, $ne: null } }] };
         }
 
         const users = await User.find(query);
@@ -239,15 +203,6 @@ router.post('/broadcast', async (req, res) => {
                 // FCM (native app)
                 if (user.fcmTokens?.length > 0 && (target === 'all' || target === 'fcm' || target === 'push')) {
                     await sendFCMToUser(user, title, message, { url: '/' });
-                }
-                // Web Push (browser/PWA)
-                if (user.pushSubscriptions?.length > 0 && (target === 'all' || target === 'push' || target === 'webpush')) {
-                    await sendPushToUser(user, {
-                        title,
-                        body: message,
-                        type: 'broadcast',
-                        data: { url: '/' }
-                    });
                 }
                 // Telegram
                 if (user.telegramChatId && (target === 'all' || target === 'telegram')) {

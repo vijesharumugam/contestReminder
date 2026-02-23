@@ -29,7 +29,7 @@ test.describe('Auth Page — Sign In & Register', () => {
     // 2. Logo / branding visible
     // ─────────────────────────────────────────────────────────────────────────
     test('should display ContestRemind branding', async ({ page }) => {
-        await expect(page.getByText(/contestremind/i).first()).toBeVisible();
+        await expect(page.locator('span:visible').filter({ hasText: /contestremind/i }).first()).toBeVisible();
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ test.describe('Auth Page — Sign In & Register', () => {
         // Do NOT click Terms checkbox
 
         await page.getByRole('button', { name: /create account/i }).click();
-        await expect(page.getByText(/agree to the terms/i)).toBeVisible();
+        await expect(page.getByText(/you must agree to the terms of service/i)).toBeVisible();
     });
 
     // ─────────────────────────────────────────────────────────────────────────

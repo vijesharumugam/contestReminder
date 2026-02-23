@@ -1,19 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import PWARegister from "@/components/PWARegister";
 import InstallPrompt from "@/components/InstallPrompt";
 import NativePushWrapper from "@/components/NativePushWrapper";
-import WebPushSubscriber from "@/components/WebPushSubscriber";
 import { InstallProvider } from "@/context/InstallContext";
 import { AuthProvider } from "@/context/AuthContext";
 
 import { ThemeProvider } from "@/components/theme-provider";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
   title: "Contest Reminder | Professional Contest Tracker",
@@ -44,7 +39,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="apple-touch-icon" sizes="512x512" href="/icon.png" />
       </head>
-      <body className={`${inter.variable} ${outfit.variable} font-sans bg-background text-foreground antialiased overflow-x-hidden`} suppressHydrationWarning>
+      <body className="font-sans bg-background text-foreground antialiased overflow-x-hidden" suppressHydrationWarning>
         <AuthProvider>
           <InstallProvider>
             <ThemeProvider
@@ -79,7 +74,6 @@ export default function RootLayout({
               <PWARegister />
               <InstallPrompt />
               <NativePushWrapper />
-              <WebPushSubscriber />
             </ThemeProvider>
           </InstallProvider>
         </AuthProvider>

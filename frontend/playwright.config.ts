@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 /**
  * Playwright E2E Test Configuration for ContestRemind
@@ -38,11 +39,22 @@ export default defineConfig({
     /* Start both dev servers automatically */
     webServer: [
         {
-            command: 'npm run dev',
+            command: 'npm.cmd run build && npm.cmd run start',
             url: 'http://localhost:3000',
             reuseExistingServer: true,
-            timeout: 120_000,
+            timeout: 300_000,
             cwd: process.cwd(),
+        },
+        {
+            command: 'node server.js',
+            url: 'http://localhost:5000',
+            reuseExistingServer: true,
+            timeout: 120_000,
+            cwd: path.resolve(process.cwd(), '..', 'backend'),
+            env: {
+                ...process.env,
+                TELEGRAM_BOT_TOKEN: '',
+            },
         },
     ],
 });

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
-import { Send, CheckCircle2, RefreshCw, Unlink, Bell, Clock, Sparkles, MessageSquare, Zap, Smartphone, Download, Settings, Lock, Trash2, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Send, CheckCircle2, RefreshCw, Unlink, Clock, Sparkles, MessageSquare, Zap, Smartphone, Download, Settings, Lock, Trash2, Eye, EyeOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,12 +24,13 @@ interface UserData {
 }
 
 export default function SettingsPage() {
-    const { user, isLoaded, refreshUser, changePassword, deleteAccount } = useAuth();
+    const { user, isLoaded, changePassword, deleteAccount } = useAuth();
     const router = useRouter();
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
+    const [telegramLink, setTelegramLink] = useState<string>("");
 
     // Account management state
     const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
@@ -60,6 +61,24 @@ export default function SettingsPage() {
             fetchUserStatus();
         }
     }, [isLoaded, user, fetchUserStatus]);
+
+    useEffect(() => {
+        const loadTelegramConnectLink = async () => {
+            if (!user) return;
+            try {
+                const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ContestReminderBot";
+                const res = await api.get('/api/users/telegram/connect-token');
+                setTelegramLink(`https://t.me/${botUsername}?start=${res.data.token}`);
+            } catch (err) {
+                console.error("Failed to generate Telegram connect link:", err);
+                setTelegramLink("");
+            }
+        };
+
+        if (isLoaded && user) {
+            loadTelegramConnectLink();
+        }
+    }, [isLoaded, user]);
 
     // ===== HANDLERS =====
     const togglePushPreference = async () => {
@@ -188,8 +207,6 @@ export default function SettingsPage() {
         </AuthGuard>
     );
 
-    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ContestReminderBot";
-    const telegramLink = `https://t.me/${botUsername}?start=${user?._id}`;
     const isTelegramConnected = !!userData?.telegramChatId;
     const isTelegramEnabled = userData?.preferences?.telegram;
     const isNativeApp = platform === 'native';
@@ -342,14 +359,25 @@ export default function SettingsPage() {
                                             : "Receive instant alerts for upcoming contests directly in Telegram."}
                                     </p>
                                 </div>
-                                <a
-                                    href={telegramLink}
-                                    target="_blank"
-                                    className="flex items-center justify-center gap-2 w-full bg-sky-500 hover:bg-sky-600 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 text-sm md:text-base active:scale-[0.98]"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    Connect Telegram
-                                </a>
+                                {telegramLink ? (
+                                    <a
+                                        href={telegramLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full bg-sky-500 hover:bg-sky-600 text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold transition-all shadow-lg shadow-sky-500/20 text-sm md:text-base active:scale-[0.98]"
+                                    >
+                                        <Send className="w-4 h-4" />
+                                        Connect Telegram
+                                    </a>
+                                ) : (
+                                    <button
+                                        disabled
+                                        className="flex items-center justify-center gap-2 w-full bg-sky-500/40 text-white/80 py-3 md:py-3.5 rounded-xl md:rounded-2xl font-bold text-sm md:text-base cursor-not-allowed"
+                                    >
+                                        <Spinner size="sm" />
+                                        Preparing Telegram Link...
+                                    </button>
+                                )}
                                 <p className="text-[9px] md:text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold">
                                     Opens Telegram App · Press /start
                                 </p>
@@ -527,7 +555,6 @@ export default function SettingsPage() {
                                         value={passwordForm.new}
                                         onChange={(e) => setPasswordForm(p => ({ ...p, new: e.target.value }))}
                                         required
-                                        minLength={6}
                                         className="w-full bg-muted/30 border border-border/50 rounded-xl px-3 pr-10 py-2.5 text-sm outline-none focus:border-primary/50 transition-colors"
                                         placeholder="Min 6 characters"
                                     />

@@ -1,13 +1,25 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'contest-reminder-jwt-secret-key-2026';
+const getJwtSecret = () => {
+    if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET is required in production');
+    }
+    const ephemeral = crypto.randomBytes(48).toString('hex');
+    console.warn('[Auth] JWT_SECRET missing. Using ephemeral development secret.');
+    return ephemeral;
+};
+
+const JWT_SECRET = getJwtSecret();
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET + '-refresh';
 
 // Token Lifetimes
 const ACCESS_TOKEN_EXPIRY = '15m';           // Short-lived for security
 const REFRESH_TOKEN_EXPIRY = '30d';          // Long-lived for convenience
 const REMEMBER_ME_REFRESH_EXPIRY = '90d';    // Extended for "Remember Me"
+const TELEGRAM_CONNECT_EXPIRY = '10m';
 
 /**
  * Generate an access token (short-lived).
@@ -23,7 +35,7 @@ const generateAccessToken = (userId) => {
  */
 const generateRefreshToken = (userId, rememberMe = false) => {
     const expiry = rememberMe ? REMEMBER_ME_REFRESH_EXPIRY : REFRESH_TOKEN_EXPIRY;
-    return jwt.sign({ userId, type: 'refresh' }, REFRESH_SECRET, { expiresIn: expiry });
+    return jwt.sign({ userId, type: 'refresh', rememberMe: !!rememberMe }, REFRESH_SECRET, { expiresIn: expiry });
 };
 
 /**
@@ -34,6 +46,18 @@ const generateTokenPair = (userId, rememberMe = false) => {
         accessToken: generateAccessToken(userId),
         refreshToken: generateRefreshToken(userId, rememberMe),
     };
+};
+
+const generateTelegramConnectToken = (userId) => {
+    return jwt.sign({ userId, type: 'telegram_connect' }, JWT_SECRET, { expiresIn: TELEGRAM_CONNECT_EXPIRY });
+};
+
+const verifyTelegramConnectToken = (token) => {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'telegram_connect') {
+        throw new Error('Invalid telegram connect token type');
+    }
+    return decoded;
 };
 
 /**
@@ -88,6 +112,8 @@ module.exports = {
     generateAccessToken,
     generateRefreshToken,
     generateTokenPair,
+    generateTelegramConnectToken,
+    verifyTelegramConnectToken,
     JWT_SECRET,
     REFRESH_SECRET
 };

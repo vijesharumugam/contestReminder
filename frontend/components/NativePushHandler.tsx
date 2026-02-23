@@ -32,8 +32,13 @@ export default function NativePushHandler({ userId }: { userId: string | null })
                         });
                         console.log('FCM: Token successfully synced with backend');
                         registered.current = true;
-                    } catch (err: any) {
-                        console.error('FCM: Failed to sync token with backend:', err.response?.data || err.message);
+                    } catch (err: unknown) {
+                        const msg = (typeof err === "object" && err !== null)
+                            ? ((err as { response?: { data?: unknown }; message?: string }).response?.data
+                                || (err as { message?: string }).message
+                                || 'Unknown error')
+                            : 'Unknown error';
+                        console.error('FCM: Failed to sync token with backend:', msg);
                     }
                 });
 

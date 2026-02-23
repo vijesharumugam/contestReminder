@@ -28,53 +28,45 @@ const InstallContext = createContext<InstallContextType | undefined>(undefined);
 
 export const APK_DOWNLOAD_URL = "https://github.com/vijesharumugam/contestReminder/releases/download/v1.3.0/app-release.apk";
 
+const detectPlatform = (): Platform => {
+    if (typeof window === "undefined") return "desktop";
+    if (Capacitor.isNativePlatform()) return "native";
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIosDevice = /ipad|iphone|ipod/.test(userAgent);
+    const isAndroidDevice = /android/.test(userAgent);
+
+    if (isIosDevice) return "ios";
+    if (isAndroidDevice) return "android";
+    return "desktop";
+};
+
 export function InstallProvider({ children }: { children: React.ReactNode }) {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
-    const [platform, setPlatform] = useState<Platform>('desktop');
-    const [isInstallable, setIsInstallable] = useState(false);
+    const [platform] = useState<Platform>(() => detectPlatform());
 
     useEffect(() => {
-        // Platform detection
-        const userAgent = navigator.userAgent.toLowerCase();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-
-        // Robust check for native environment using Capacitor core
-        // We rely solely on Capacitor.isNativePlatform() which is reliable for checking Native vs Web
-        const isNativePlatform = Capacitor.isNativePlatform();
-
-        if (isNativePlatform) {
-            setPlatform('native');
+        if (platform === 'native') {
             return;
         }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isIosDevice = /ipad|iphone|ipod/.test(userAgent) && !(window as any).MSStream;
-        const isAndroidDevice = /android/.test(userAgent);
-
-        if (isIosDevice) {
-            setPlatform('ios');
+        if (platform === 'ios') {
             const hasSeenPrompt = sessionStorage.getItem('iosInstallPromptSeen');
             if (!hasSeenPrompt) {
                 // Delay slightly to not be annoying immediately on load
                 setTimeout(() => setShowPrompt(true), 1000);
             }
-        } else if (isAndroidDevice) {
-            setPlatform('android');
+        } else if (platform === 'android') {
             const hasSeenPrompt = sessionStorage.getItem('androidInstallPromptSeen');
             if (!hasSeenPrompt) {
                 setTimeout(() => setShowPrompt(true), 2000);
             }
-        } else {
-            setPlatform('desktop');
         }
 
         // PWA Install Prompt Listener
         const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e as BeforeInstallPromptEvent);
-            setIsInstallable(true);
 
             // Only show prompt automatically on desktop if not dismissed in this session
             if (platform === 'desktop' && !sessionStorage.getItem('desktopInstallPromptSeen')) {
@@ -107,7 +99,6 @@ export function InstallProvider({ children }: { children: React.ReactNode }) {
         console.log(`User response to the install prompt: ${outcome}`);
 
         setDeferredPrompt(null);
-        setIsInstallable(false);
         setShowPrompt(false);
         sessionStorage.setItem('desktopInstallPromptSeen', 'true');
     }, [deferredPrompt, platform]);
