@@ -11,7 +11,6 @@ import {
     Shield,
     LogIn,
     LogOut,
-    Trophy,
     HelpCircle,
     Sun,
     Moon,
@@ -123,9 +122,7 @@ const Sidebar = () => {
                         {themeIcon}
                     </button>
 
-                    <button className="w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" title="Leaderboard">
-                        <Trophy className="w-6 h-6" />
-                    </button>
+
 
                     <div className="flex-1"></div>
 
