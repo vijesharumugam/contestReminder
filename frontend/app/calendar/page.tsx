@@ -75,6 +75,16 @@ export default function CalendarPage() {
         [contests],
     );
 
+    const contestsInViewedMonth = useMemo(
+        () =>
+            contests.filter(
+                (c) =>
+                    new Date(c.startTime).getMonth() === currentDate.getMonth() &&
+                    new Date(c.startTime).getFullYear() === currentDate.getFullYear(),
+            ),
+        [contests, currentDate],
+    );
+
     if (loading) {
         return (
             <AuthGuard>
@@ -165,6 +175,13 @@ export default function CalendarPage() {
                                 </button>
                             </div>
                         </div>
+
+                        {contestsInViewedMonth.length === 0 &&
+                            (currentDate.getMonth() > new Date().getMonth() || currentDate.getFullYear() > new Date().getFullYear()) && (
+                                <p className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                                    No contests listed for this month yet. Platforms (Codeforces, LeetCode, CodeChef, etc.) usually publish schedules 1–2 months in advance. Check back closer to the date.
+                                </p>
+                            )}
 
                         <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
