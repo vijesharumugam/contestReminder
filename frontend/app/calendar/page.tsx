@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ExternalLink } from "lucide-react";
-import api from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import {
+    addMonths,
+    eachDayOfInterval,
+    endOfMonth,
+    format,
+    isSameDay,
+    isToday,
+    startOfMonth,
+    subMonths,
+} from "date-fns";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
-import { Spinner } from "@/components/Spinner";
+import api from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
+import { Spinner } from "@/components/Spinner";
+import { cn } from "@/lib/utils";
 
 interface Contest {
     _id: string;
@@ -17,19 +27,28 @@ interface Contest {
     url: string;
 }
 
+const getPlatformDot = (platform: string) => {
+    const key = platform.toLowerCase();
+    if (key.includes("codeforces")) return "bg-red-500";
+    if (key.includes("codechef")) return "bg-amber-500";
+    if (key.includes("leetcode")) return "bg-orange-500";
+    if (key.includes("atcoder")) return "bg-slate-500";
+    return "bg-primary";
+};
+
 export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const [contests, setContests] = useState<Contest[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDate, setSelectedDate] = useState(new Date());
 
     useEffect(() => {
         const fetchContests = async () => {
             try {
-                const res = await api.get('/api/contests');
+                const res = await api.get("/api/contests");
                 setContests(res.data);
-            } catch (err) {
-                console.error("Error fetching contests:", err);
+            } catch (error) {
+                console.error("Error fetching contests:", error);
             } finally {
                 setLoading(false);
             }
@@ -42,178 +61,194 @@ export default function CalendarPage() {
         end: endOfMonth(currentDate),
     });
 
-    const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-    const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
-
-    const getContestsForDay = (date: Date) => {
-        return contests.filter(c => isSameDay(new Date(c.startTime), date));
-    };
-
-    const upcomingContests = contests
-        .filter(c => new Date(c.startTime) >= new Date())
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-        .slice(0, 5);
-
-    const getPlatformColor = (platform: string) => {
-        const p = platform.toLowerCase();
-        if (p.includes('codeforces')) return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20';
-        if (p.includes('codechef')) return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
-        if (p.includes('leetcode')) return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20';
-        if (p.includes('atcoder')) return 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20';
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-    };
-
-    if (loading) return (
-        <AuthGuard>
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Spinner size="lg" />
-            </div>
-        </AuthGuard>
+    const selectedDayContests = useMemo(
+        () => contests.filter((contest) => isSameDay(new Date(contest.startTime), selectedDate)),
+        [contests, selectedDate],
     );
+
+    const upcomingContests = useMemo(
+        () =>
+            contests
+                .filter((contest) => new Date(contest.startTime) >= new Date())
+                .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                .slice(0, 6),
+        [contests],
+    );
+
+    if (loading) {
+        return (
+            <AuthGuard>
+                <div className="flex min-h-[60vh] items-center justify-center">
+                    <Spinner size="lg" />
+                </div>
+            </AuthGuard>
+        );
+    }
 
     return (
         <AuthGuard>
-            <div className="flex flex-col h-full space-y-4">
-                {/* Top Header with Auth */}
-                {/* Top Header with Auth - Removed */}
+            <div className="space-y-5">
+                <section className="glass rounded-2xl p-5 md:p-6">
+                    <h1 className="text-2xl font-bold text-foreground md:text-3xl">Contest calendar</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Monthly view of scheduled contests with quick access to event links.
+                    </p>
+                </section>
 
-                <div className="flex flex-col lg:flex-row gap-8 h-full">
-                    {/* Left Sidebar: Upcoming List */}
-                    <div className="lg:w-1/3 space-y-6">
-                        <div>
-                            <h1 className="text-3xl font-bold font-outfit mb-2 text-foreground">Upcoming Contests</h1>
-                            <p className="text-muted-foreground text-sm">Don&apos;t miss scheduled events</p>
-                        </div>
+                <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+                    <aside className="space-y-4">
+                        <section className="glass rounded-2xl p-4">
+                            <h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">Selected date</h2>
+                            <p className="mt-1 text-lg font-bold text-foreground">{format(selectedDate, "EEEE, MMMM d")}</p>
 
-                        <div className="space-y-4">
-                            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Next Up</h2>
-                            {upcomingContests.map((contest) => (
-                                <motion.div
-                                    key={contest._id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`p-4 rounded-2xl border bg-card/80 backdrop-blur-md transition-all hover:bg-muted/50 ${getPlatformColor(contest.platform)}`}
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <div className={`w-2 h-2 mt-2 rounded-full ${contest.platform.toLowerCase().includes('codeforces') ? 'bg-red-500' :
-                                            contest.platform.toLowerCase().includes('codechef') ? 'bg-orange-500' :
-                                                contest.platform.toLowerCase().includes('leetcode') ? 'bg-yellow-500' :
-                                                    'bg-blue-500'
-                                            }`} />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-semibold opacity-70 mb-1">
-                                                {format(new Date(contest.startTime), "dd-MM-yyyy h:mm a")}
+                            <div className="mt-3 space-y-2">
+                                {selectedDayContests.length > 0 ? (
+                                    selectedDayContests.map((contest) => (
+                                        <a
+                                            key={contest._id}
+                                            href={contest.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block rounded-xl border border-border bg-muted/40 p-3 transition-colors hover:border-primary/35 hover:bg-muted/55"
+                                        >
+                                            <p className="line-clamp-2 text-sm font-semibold text-foreground">{contest.name}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">{format(new Date(contest.startTime), "p")} - {contest.platform}</p>
+                                        </a>
+                                    ))
+                                ) : (
+                                    <p className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+                                        No contests scheduled on this date.
+                                    </p>
+                                )}
+                            </div>
+                        </section>
+
+                        <section className="glass rounded-2xl p-4">
+                            <h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">Next contests</h2>
+                            <div className="mt-3 space-y-2">
+                                {upcomingContests.map((contest) => (
+                                    <motion.div key={contest._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                                        <a
+                                            href={contest.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block rounded-xl border border-border bg-background/75 p-3 transition-colors hover:border-primary/35"
+                                        >
+                                            <p className="line-clamp-1 text-sm font-semibold text-foreground">{contest.name}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                {format(new Date(contest.startTime), "MMM d, p")}
                                             </p>
-                                            <h3 className="font-bold text-foreground truncate mb-2 text-sm md:text-base">{contest.name}</h3>
+                                        </a>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </section>
+                    </aside>
 
-                                            <div className="flex items-center gap-3 mt-3">
-                                                <a
-                                                    href={contest.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-xs flex items-center gap-1.5 font-bold hover:underline opacity-80 hover:opacity-100"
-                                                >
-                                                    View Details <ExternalLink className="w-3 h-3" />
-                                                </a>
-                                                <a
-                                                    href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(contest.name)}&dates=${format(new Date(contest.startTime), "yyyyMMdd'T'HHmmss")}/${format(new Date(new Date(contest.startTime).getTime() + contest.duration * 1000), "yyyyMMdd'T'HHmmss")}&details=${encodeURIComponent(contest.url)}&location=${encodeURIComponent(contest.platform)}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-xs flex items-center gap-1.5 font-bold hover:underline opacity-80 hover:opacity-100"
-                                                >
-                                                    Add to Calendar <CalendarIcon className="w-3 h-3" />
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Right Side: Calendar Grid */}
-                    <div className="flex-1 bg-card/50 border border-border rounded-3xl p-4 md:p-6 overflow-hidden flex flex-col">
-                        {/* Calendar Header */}
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl md:text-2xl font-bold font-outfit text-foreground">
-                                {format(currentDate, "MMMM yyyy")}
-                            </h2>
+                    <section className="glass rounded-2xl p-4 md:p-5">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-foreground">{format(currentDate, "MMMM yyyy")}</h2>
                             <div className="flex items-center gap-2">
-                                <button onClick={prevMonth} className="p-2 hover:bg-muted rounded-xl transition-colors">
-                                    <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+                                <button
+                                    onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                                    className="rounded-lg border border-border bg-background/75 p-2 text-muted-foreground transition-colors hover:text-foreground"
+                                    aria-label="Previous month"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
                                 </button>
-                                <button onClick={nextMonth} className="p-2 hover:bg-muted rounded-xl transition-colors">
-                                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                <button
+                                    onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                                    className="rounded-lg border border-border bg-background/75 p-2 text-muted-foreground transition-colors hover:text-foreground"
+                                    aria-label="Next month"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Days Header */}
-                        <div className="grid grid-cols-7 mb-2 text-center">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                <div key={day} className="text-sm font-semibold text-muted-foreground py-2">
-                                    {day}
-                                </div>
+                        <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                                <span key={day} className="py-1">{day}</span>
                             ))}
                         </div>
 
-                        {/* Calendar Grid */}
-                        <div className="grid grid-cols-7 gap-1 md:gap-2 auto-rows-fr flex-1">
-                            {/* Empty cells for start of month */}
-                            {Array.from({ length: startOfMonth(currentDate).getDay() }).map((_, i) => (
-                                <div key={`empty-${i}`} className="min-h-[80px] md:min-h-[120px] bg-muted/20 rounded-xl border border-transparent" />
+                        <div className="grid grid-cols-7 gap-1.5 md:gap-2">
+                            {Array.from({ length: startOfMonth(currentDate).getDay() }).map((_, index) => (
+                                <div key={`empty-${index}`} className="min-h-[96px] rounded-xl border border-transparent" />
                             ))}
 
                             {daysInMonth.map((day) => {
-                                const dayContests = getContestsForDay(day);
-                                const isSelected = isSameDay(day, selectedDate);
-                                const isTodayDate = isToday(day);
+                                const dayContests = contests.filter((contest) => isSameDay(new Date(contest.startTime), day));
+                                const active = isSameDay(day, selectedDate);
+                                const today = isToday(day);
 
                                 return (
-                                    <div
-                                        key={day.toString()}
+                                    <button
+                                        key={day.toISOString()}
                                         onClick={() => setSelectedDate(day)}
-                                        className={`
-                                    min-h-[80px] md:min-h-[120px] p-2 rounded-xl border transition-all cursor-pointer flex flex-col
-                                    ${isSelected ? 'bg-primary/5 border-primary/30' : 'bg-card border-border hover:border-primary/20'}
-                                    ${isTodayDate ? 'ring-1 ring-primary' : ''}
-                                `}
+                                        className={cn(
+                                            "min-h-[96px] rounded-xl border p-2 text-left transition-colors",
+                                            active ? "border-primary/45 bg-primary/10" : "border-border bg-background/75 hover:border-primary/30",
+                                        )}
                                     >
-                                        <span className={`
-                                    text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                                    ${isTodayDate ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}
-                                `}>
-                                            {format(day, 'd')}
+                                        <span
+                                            className={cn(
+                                                "inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold",
+                                                today ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                                            )}
+                                        >
+                                            {format(day, "d")}
                                         </span>
 
-                                        <div className="space-y-1 overflow-y-auto scrollbar-hide flex-1">
-                                            {dayContests.slice(0, 3).map((c, i) => (
-                                                <div
-                                                    key={i}
-                                                    className={`
-                                                text-[9px] md:text-[10px] px-1.5 py-0.5 rounded truncate font-medium
-                                                ${c.platform.toLowerCase().includes('codeforces') ? 'bg-red-500/10 text-red-700 dark:text-red-300' :
-                                                            c.platform.toLowerCase().includes('codechef') ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300' :
-                                                                c.platform.toLowerCase().includes('leetcode') ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300' :
-                                                                    'bg-blue-500/10 text-blue-700 dark:text-blue-300'}
-                                            `}
-                                                    title={c.name}
+                                        <div className="mt-2 space-y-1">
+                                            {dayContests.slice(0, 2).map((contest) => (
+                                                <span
+                                                    key={contest._id}
+                                                    className="flex items-center gap-1 truncate rounded-md bg-muted/55 px-1.5 py-1 text-[10px] font-medium text-foreground"
                                                 >
-                                                    {c.platform === 'CodeChef' ? 'CC' : c.platform === 'Codeforces' ? 'CF' : 'LC'} • {c.name}
-                                                </div>
+                                                    <span className={cn("h-1.5 w-1.5 rounded-full", getPlatformDot(contest.platform))} />
+                                                    {contest.platform}
+                                                </span>
                                             ))}
-                                            {dayContests.length > 3 && (
-                                                <div className="text-[9px] text-muted-foreground pl-1">
-                                                    +{dayContests.length - 3} more
-                                                </div>
+                                            {dayContests.length > 2 && (
+                                                <span className="block text-[10px] text-muted-foreground">+{dayContests.length - 2} more</span>
                                             )}
                                         </div>
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
-                    </div>
+                    </section>
                 </div>
+
+                <section className="glass rounded-2xl p-4 md:p-5">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        Add selected contests to Google Calendar
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {selectedDayContests.map((contest) => {
+                            const start = new Date(contest.startTime);
+                            const end = new Date(start.getTime() + contest.duration * 1000);
+                            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(contest.name)}&dates=${format(start, "yyyyMMdd'T'HHmmss")}/${format(end, "yyyyMMdd'T'HHmmss")}&details=${encodeURIComponent(contest.url)}&location=${encodeURIComponent(contest.platform)}`;
+                            return (
+                                <a
+                                    key={`calendar-${contest._id}`}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/35 hover:text-foreground"
+                                >
+                                    {contest.platform}
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                            );
+                        })}
+                        {selectedDayContests.length === 0 && (
+                            <p className="text-xs text-muted-foreground">Select a date with contests to generate calendar links.</p>
+                        )}
+                    </div>
+                </section>
             </div>
         </AuthGuard>
     );

@@ -1,34 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import {
-    Home,
-    Calendar as CalendarIcon,
-    Settings,
-    Shield,
-    LogIn,
-    LogOut,
-    HelpCircle,
-    Sun,
-    Moon,
-    User as UserIcon
-} from "lucide-react";
-import { useMemo, useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar as CalendarIcon, Home, LogOut, Moon, Settings, Shield, Sun, User as UserIcon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 const Sidebar = () => {
-    const { isLoaded, isSignedIn, isAdmin, user, logout } = useAuth();
+    const { isSignedIn, isAdmin, user, logout } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        // Use timeout to avoid synchronous state update warning during hydration mismatch check
         const timer = setTimeout(() => setMounted(true), 0);
         return () => clearTimeout(timer);
     }, []);
@@ -39,11 +27,9 @@ const Sidebar = () => {
             { name: "Calendar", href: "/calendar", icon: CalendarIcon },
             { name: "Settings", href: "/settings", icon: Settings },
         ];
-
         if (isAdmin) {
             links.push({ name: "Admin", href: "/admin", icon: Shield });
         }
-
         return links;
     }, [isAdmin]);
 
@@ -52,37 +38,31 @@ const Sidebar = () => {
     };
 
     const handleSignOut = () => {
-        if (window.confirm("Are you sure you want to log out?")) {
+        if (window.confirm("Sign out from your account?")) {
             logout();
             router.push("/");
         }
     };
 
-    const themeIcon = !mounted ? <div className="w-6 h-6" /> : (theme === "dark" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />);
-    const mobileThemeIcon = !mounted ? <div className="w-5 h-5" /> : (theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />);
-
-    // Get user initials for avatar
+    const userLabel = user?.email || "Signed in account";
     const userInitial = user?.email?.charAt(0)?.toUpperCase() || "U";
 
     return (
         <>
-            {/* Desktop Sidebar - Narrow Vertical Style */}
-            <aside className="hidden md:flex flex-col w-[68px] h-screen fixed left-0 top-0 border-r border-border bg-card z-50 py-6 items-center">
-                {/* Logo */}
-                <div className="mb-8">
-                    <Link href="/" className="group relative flex items-center justify-center">
-                        <div className="absolute -inset-3 bg-blue-500/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition duration-500"></div>
-                        <div className="relative w-10 h-10">
-                            <Image src="/icon.png" alt="Logo" fill className="object-contain drop-shadow-lg" sizes="40px" />
+            <aside className="hidden md:flex fixed left-0 top-0 z-50 h-screen w-[252px] flex-col border-r border-border bg-card/86 backdrop-blur-xl">
+                <div className="border-b border-border px-5 py-5">
+                    <Link href="/" className="flex items-center gap-3">
+                        <div className="relative h-10 w-10 overflow-hidden rounded-xl border border-border bg-background/70">
+                            <Image src="/icon.png" alt="ContestRemind logo" fill className="object-contain p-1.5" sizes="40px" />
+                        </div>
+                        <div>
+                            <p className="font-outfit text-base font-bold tracking-tight text-foreground">ContestRemind</p>
+                            <p className="text-[11px] text-muted-foreground">Competitive programming alerts</p>
                         </div>
                     </Link>
                 </div>
 
-                {/* Divider */}
-                <div className="w-8 h-px bg-border mb-6"></div>
-
-                {/* Navigation Links */}
-                <div className="flex-1 w-full px-4 space-y-4 flex flex-col items-center">
+                <nav className="flex-1 space-y-1 p-4">
                     {navLinks.map((link) => {
                         const isActive = pathname === link.href;
                         return (
@@ -90,81 +70,96 @@ const Sidebar = () => {
                                 key={link.name}
                                 href={link.href}
                                 className={cn(
-                                    "relative w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 group",
+                                    "group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all",
                                     isActive
-                                        ? "bg-primary/10 text-primary shadow-lg border border-primary/20"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                        ? "border-primary/35 bg-primary/12 text-primary"
+                                        : "border-transparent text-muted-foreground hover:border-border hover:bg-muted/70 hover:text-foreground"
                                 )}
-                                title={link.name}
                             >
-                                <link.icon
-                                    className={cn(
-                                        "w-6 h-6 transition-transform duration-300",
-                                        isActive ? "scale-110" : "group-hover:scale-110"
-                                    )}
-                                    strokeWidth={isActive ? 2.5 : 2}
-                                />
-                                {isActive && (
-                                    <div className="absolute -right-[17px] top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-l-full shadow-lg"></div>
-                                )}
+                                <link.icon className="h-4 w-4" />
+                                <span>{link.name}</span>
                             </Link>
                         );
                     })}
+                </nav>
 
-                    <div className="w-8 h-px bg-border my-2"></div>
-
-                    {/* Theme Switcher Button (Desktop) */}
+                <div className="border-t border-border p-4">
                     <button
                         onClick={toggleTheme}
-                        className="w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                        title="Toggle Theme"
+                        className="mb-3 flex w-full items-center justify-between rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        title="Switch theme"
                     >
-                        {themeIcon}
+                        <span>Theme</span>
+                        {mounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     </button>
 
-
-
-                    <div className="flex-1"></div>
-
-                    <button className="w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all mb-2" title="Help & Support">
-                        <HelpCircle className="w-6 h-6" />
-                    </button>
-                </div>
-
-                {/* Footer / User Profile */}
-                <div className="w-full px-4 pt-4 border-t border-border flex flex-col items-center gap-4">
                     {isSignedIn ? (
-                        <div className="flex flex-col items-center gap-4">
-                            {/* User Avatar */}
-                            <div
-                                className="h-10 w-10 rounded-full bg-primary/20 border-2 border-border hover:border-primary/50 transition-all flex items-center justify-center cursor-pointer"
-                                title={user?.email || "Profile"}
-                            >
-                                <span className="text-sm font-bold text-primary">{userInitial}</span>
+                        <div className="space-y-3 rounded-xl border border-border bg-background/65 p-3">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+                                    {userInitial}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="truncate text-xs font-semibold text-foreground">{userLabel}</p>
+                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Account</p>
+                                </div>
                             </div>
                             <button
                                 onClick={handleSignOut}
-                                className="text-muted-foreground hover:text-destructive transition-colors p-2 rounded-xl hover:bg-destructive/10"
-                                title="Sign Out"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-destructive/35 hover:bg-destructive/8 hover:text-destructive"
                             >
-                                <LogOut className="w-5 h-5" />
+                                <LogOut className="h-3.5 w-3.5" />
+                                Sign out
                             </button>
                         </div>
                     ) : (
                         <Link
                             href="/sign-in"
-                            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-lg shadow-primary/20 group"
-                            title="Sign In"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                         >
-                            <UserIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <UserIcon className="h-4 w-4" />
+                            Sign in
                         </Link>
                     )}
                 </div>
             </aside>
 
-            {/* Mobile Bottom Navigation (Unchanged) */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border px-2 pb-safe">
-                <div className="flex items-center justify-around h-16">
+            <header className="md:hidden fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/92 backdrop-blur-xl">
+                <div className="flex min-h-[calc(3.8rem+env(safe-area-inset-top))] items-center justify-between px-4 pt-safe">
+                    <Link href="/" className="flex items-center gap-2.5">
+                        <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border bg-card">
+                            <Image src="/icon.png" alt="ContestRemind logo" fill className="object-contain p-1" sizes="32px" />
+                        </div>
+                        <span className="font-outfit text-base font-bold tracking-tight text-foreground">ContestRemind</span>
+                    </Link>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={toggleTheme}
+                            className="rounded-lg border border-border bg-card/70 p-2 text-muted-foreground transition-colors hover:text-foreground"
+                            title="Switch theme"
+                        >
+                            {mounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        </button>
+                        {isSignedIn ? (
+                            <button
+                                onClick={handleSignOut}
+                                className="rounded-lg border border-border bg-card/70 p-2 text-muted-foreground transition-colors hover:text-destructive"
+                                title="Sign out"
+                            >
+                                <LogOut className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <Link href="/sign-in" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
+                                Sign in
+                            </Link>
+                        )}
+                    </div>
+                </div>
+            </header>
+
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 px-2 backdrop-blur-xl pb-safe">
+                <div className="flex h-16 items-center justify-around">
                     {navLinks.map((link) => {
                         const isActive = pathname === link.href;
                         return (
@@ -172,69 +167,17 @@ const Sidebar = () => {
                                 key={link.name}
                                 href={link.href}
                                 className={cn(
-                                    "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[64px]",
-                                    isActive ? "text-primary" : "text-muted-foreground active:text-foreground"
+                                    "flex min-w-[70px] flex-col items-center justify-center rounded-xl px-3 py-2 text-[10px] font-semibold tracking-wide transition-all",
+                                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
-                                <div className={cn("p-1.5 rounded-xl transition-all", isActive ? "bg-primary/10" : "")}>
-                                    <link.icon className={cn("w-5 h-5 transition-all", isActive ? "text-primary" : "")} />
+                                <div className={cn("mb-1 rounded-lg p-1.5", isActive ? "bg-primary/12" : "")}>
+                                    <link.icon className="h-4 w-4" />
                                 </div>
-                                <span className={cn("text-[10px] font-bold tracking-wide", isActive ? "text-primary" : "")}>
-                                    {link.name}
-                                </span>
+                                {link.name}
                             </Link>
                         );
                     })}
-                </div>
-            </div>
-
-            {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-between px-4 pt-safe min-h-[calc(4rem+env(safe-area-inset-top))]">
-                <div className="flex items-center gap-3">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="relative w-8 h-8">
-                            <Image src="/icon.png" alt="Logo" fill className="object-contain" sizes="32px" />
-                        </div>
-                        <span className="font-outfit font-bold text-lg tracking-tight text-foreground">
-                            Contest<span className="text-primary">Remind</span>
-                        </span>
-                    </Link>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {/* Theme Switcher Button (Mobile — before profile) */}
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all border border-border/50"
-                        title="Toggle Theme"
-                    >
-                        {mobileThemeIcon}
-                    </button>
-
-                    {isSignedIn ? (
-                        <div className="flex items-center gap-2">
-                            <div
-                                className="h-8 w-8 rounded-full bg-primary/20 border border-border flex items-center justify-center"
-                                title={user?.email || "Profile"}
-                            >
-                                <span className="text-xs font-bold text-primary">{userInitial}</span>
-                            </div>
-                            <button
-                                onClick={handleSignOut}
-                                className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
-                                title="Sign Out"
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ) : (
-                        <Link
-                            href="/sign-in"
-                            className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-lg"
-                        >
-                            Sign In
-                        </Link>
-                    )}
                 </div>
             </div>
         </>

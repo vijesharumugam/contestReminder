@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Contest Reminder',
-        short_name: 'CReminder',
+        name: 'ContestRemind',
+        short_name: 'ContestRemind',
         description:
             'Track coding contests from Codeforces, CodeChef, LeetCode, and more. Never miss a competitive programming contest again.',
         start_url: '/',

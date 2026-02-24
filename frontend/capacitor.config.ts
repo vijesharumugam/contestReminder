@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
     // This means: website + native app share the same codebase automatically.
     // UPDATE THIS to your actual Vercel deployment URL.
     server: {
-        url: 'https://contest-reminder-pi.vercel.app',
+        url: 'https://creminder.vercel.app/',
         cleartext: true,  // Allow HTTP for development (HTTPS works by default)
     },
 

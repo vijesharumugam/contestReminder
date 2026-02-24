@@ -28,7 +28,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const contestRoutes = require('./routes/contests');
 const adminRoutes = require('./routes/admin');
-const { fetchAndSaveContests } = require('./services/clistService');
+const { fetchAndSaveContests, UPCOMING_CONTEST_LIMIT: FETCH_BATCH_SIZE } = require('./services/clistService');
 const { sendDailyDigest, sendUpcomingReminders } = require('./services/scheduler');
 const { initializeFirebase } = require('./services/fcmService');
 const { authenticate, isAdmin } = require('./middleware/auth');
@@ -56,20 +56,38 @@ app.get('/', (req, res) => {
     res.send('Contest Reminder API Running');
 });
 
-// Manual trigger for testing (Optional)
+const runContestSync = async (reason = 'manual') => {
+    console.log(`[Sync] Contest sync started (${reason})...`);
+    const stats = await fetchAndSaveContests();
+    console.log(`[Sync] Contest sync finished (${reason}).`, stats);
+    return stats;
+};
+
+// Manual trigger for admins
 app.get('/api/trigger-fetch', authenticate, isAdmin, async (req, res) => {
-    await fetchAndSaveContests();
-    res.send('Fetch triggered');
+    try {
+        const stats = await runContestSync('manual_trigger');
+        res.json({ success: true, stats });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // Initialize Cron Jobs
 const initScheduledJobs = () => {
     console.log('[Scheduler] Initializing scheduled jobs...');
 
-    // 1. Fetch Contests: Every 6 hours
-    cron.schedule('0 */6 * * *', async () => {
-        console.log('[Cron] Fetching contests from CLIST API...');
-        await fetchAndSaveContests();
+    // 1. Fetch and store upcoming contests once per day (00:10 AM IST)
+    // Fetches in batches (default 200 per batch) and stores all fetched upcoming contests.
+    cron.schedule('10 0 * * *', async () => {
+        try {
+            await runContestSync('daily_cron');
+        } catch (error) {
+            console.error('[Cron] Contest sync failed:', error.message);
+        }
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
 
     // 2. Daily Digest: 08:00 AM IST
@@ -105,6 +123,7 @@ const initScheduledJobs = () => {
     }
 
     console.log('[Scheduler] ✅ All jobs initialized successfully');
+    console.log(`[Scheduler] Contest sync: daily at 00:10 IST, fetch batch size: ${FETCH_BATCH_SIZE}`);
 };
 
 // Start Server & Scheduler
@@ -120,6 +139,11 @@ app.listen(PORT, '0.0.0.0', async () => {
 
     // Initialize scheduled jobs
     initScheduledJobs();
+
+    // Run one sync on startup so data is immediately available without waiting for next cron.
+    runContestSync('startup').catch((error) => {
+        console.error('[Startup] Initial contest sync failed:', error.message);
+    });
 });
 
 // Force restart trigger

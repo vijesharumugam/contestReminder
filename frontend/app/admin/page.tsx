@@ -191,7 +191,7 @@ export default function AdminPage() {
                 }
             } else {
                 const label = type === 'fcm' ? 'NATIVE PUSH' : 'TELEGRAM';
-                addToast('success', 'Test Sent', `${label} test sent successfully.`);
+                addToast('success', 'Sample Sent', `${label} notification sent successfully.`);
             }
         } catch (err: unknown) {
             console.error(err);
@@ -200,7 +200,7 @@ export default function AdminPage() {
                 const maybeErr = err as { message?: string; response?: { data?: { error?: string } } };
                 msg = maybeErr.response?.data?.error || maybeErr.message || msg;
             }
-            addToast('error', 'Test Failed', `${msg}`);
+            addToast('error', 'Delivery Failed', `${msg}`);
         } finally {
             setTestLoading(null);
         }
@@ -225,9 +225,9 @@ export default function AdminPage() {
             <div className="min-h-[80vh] flex items-center justify-center p-4">
                 <div className="glass p-8 rounded-3xl w-full max-w-md text-center space-y-6 border-red-500/20 shadow-2xl shadow-red-500/5">
                     <ShieldAlert className="w-16 h-16 text-red-500 mx-auto" />
-                    <h1 className="text-3xl font-bold font-outfit text-red-500">Restricted Area</h1>
+                    <h1 className="text-3xl font-bold font-outfit text-red-500">Access Restricted</h1>
                     <p className="text-muted-foreground">Administrative privileges required.</p>
-                    <Link href="/" className="block btn-primary py-3 rounded-xl">Back to Home</Link>
+                    <Link href="/" className="block btn-primary py-3 rounded-xl">Return to app</Link>
                 </div>
             </div>
         );
@@ -264,12 +264,12 @@ export default function AdminPage() {
                 <div>
                     <h1 className="text-3xl md:text-4xl font-bold font-outfit text-foreground flex items-center gap-3">
                         <LayoutDashboard className="w-8 h-8 text-violet-500" />
-                        Admin Console
+                        Operations Console
                     </h1>
                     <div className="flex items-center gap-2 mt-1">
                         <Server className={cn("w-3 h-3", !stats && !loading ? "text-red-500" : "text-muted-foreground")} />
                         <span className={cn("text-xs", !stats && !loading ? "text-red-400 font-bold" : "text-muted-foreground")}>
-                            {loading ? 'Connecting...' : stats ? `Server Time: ${new Date(stats.serverTime).toLocaleTimeString()}` : 'Server Offline'}
+                            {loading ? 'Syncing data...' : stats ? `Server Time: ${new Date(stats.serverTime).toLocaleTimeString()}` : 'Server unavailable'}
                         </span>
                     </div>
                 </div>
@@ -370,7 +370,7 @@ export default function AdminPage() {
                             <Search className="w-5 h-5 text-muted-foreground ml-2" />
                             <input
                                 type="text"
-                                placeholder="Search users by email, or ID..."
+                                placeholder="Search users by email or user ID..."
                                 className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted-foreground/50 h-10 w-full"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -421,7 +421,7 @@ export default function AdminPage() {
                                             onClick={() => testNotification('fcm', '', u._id)}
                                             disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
                                             className="flex items-center justify-center gap-1 py-2 rounded-xl bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 disabled:opacity-10 transition-colors text-[10px] font-bold"
-                                            title="Native App Test"
+                                            title="Send native sample"
                                         >
                                             {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Smartphone className="w-3 h-3" />}
                                             Native
@@ -430,7 +430,7 @@ export default function AdminPage() {
                                             onClick={() => testNotification('telegram', u.telegramChatId!, u._id)}
                                             disabled={!u.telegramChatId || testLoading === `telegram-${u._id}`}
                                             className="flex items-center justify-center gap-1 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 disabled:opacity-10 transition-colors text-[10px] font-bold"
-                                            title="Telegram Test"
+                                            title="Send Telegram sample"
                                         >
                                             {testLoading === `telegram-${u._id}` ? <Spinner size="sm" /> : <Send className="w-3 h-3" />}
                                             Telegram
@@ -483,7 +483,7 @@ export default function AdminPage() {
                                                         onClick={() => testNotification('fcm', '', u._id)}
                                                         disabled={!u.fcmTokens?.length || testLoading === `fcm-${u._id}`}
                                                         className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-20 transition-colors text-fuchsia-400"
-                                                        title="Test Native Push"
+                                                        title="Send native sample"
                                                     >
                                                         {testLoading === `fcm-${u._id}` ? <Spinner size="sm" /> : <Smartphone className="w-4 h-4" />}
                                                     </button>
@@ -491,7 +491,7 @@ export default function AdminPage() {
                                                         onClick={() => testNotification('telegram', u.telegramChatId!, u._id)}
                                                         disabled={!u.telegramChatId || testLoading === `telegram-${u._id}`}
                                                         className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-20 transition-colors text-sky-400"
-                                                        title="Test Telegram"
+                                                        title="Send Telegram sample"
                                                     >
                                                         {testLoading === `telegram-${u._id}` ? <Spinner size="sm" /> : <Send className="w-4 h-4" />}
                                                     </button>
