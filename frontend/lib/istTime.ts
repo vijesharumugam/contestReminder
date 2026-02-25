@@ -2,8 +2,19 @@ const IST_TIME_ZONE = "Asia/Kolkata" as const;
 
 type DateInput = Date | string;
 
-const toDate = (input: DateInput): Date =>
-  typeof input === "string" ? new Date(input) : input;
+const toDate = (input: DateInput): Date => {
+  if (input instanceof Date) return input;
+
+  const raw = input;
+
+  // If the backend sends an ISO string *without* timezone info (e.g. "2026-02-25T14:30:00"),
+  // treat it as UTC by appending "Z" so that we can then reliably format it as IST.
+  if (typeof raw === "string" && raw.includes("T") && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)) {
+    return new Date(`${raw}Z`);
+  }
+
+  return new Date(raw);
+};
 
 export const formatISTDateTime = (input: DateInput): string => {
   const date = toDate(input);
