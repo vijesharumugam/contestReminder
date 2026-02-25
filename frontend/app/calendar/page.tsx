@@ -6,7 +6,6 @@ import {
     eachDayOfInterval,
     endOfMonth,
     format,
-    isSameDay,
     isToday,
     startOfMonth,
     subMonths,
@@ -17,6 +16,7 @@ import api from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
+import { formatISTShortDateTime, formatISTTime, isSameISTDay } from "@/lib/istTime";
 
 interface Contest {
     _id: string;
@@ -62,7 +62,7 @@ export default function CalendarPage() {
     });
 
     const selectedDayContests = useMemo(
-        () => contests.filter((contest) => isSameDay(new Date(contest.startTime), selectedDate)),
+        () => contests.filter((contest) => isSameISTDay(contest.startTime, selectedDate)),
         [contests, selectedDate],
     );
 
@@ -122,7 +122,7 @@ export default function CalendarPage() {
                                             className="block rounded-xl border border-border bg-muted/40 p-3 transition-colors hover:border-primary/35 hover:bg-muted/55"
                                         >
                                             <p className="line-clamp-2 text-sm font-semibold text-foreground">{contest.name}</p>
-                                            <p className="mt-1 text-xs text-muted-foreground">{format(new Date(contest.startTime), "p")} - {contest.platform}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">{formatISTTime(contest.startTime)} IST - {contest.platform}</p>
                                         </a>
                                     ))
                                 ) : (
@@ -146,7 +146,7 @@ export default function CalendarPage() {
                                         >
                                             <p className="line-clamp-1 text-sm font-semibold text-foreground">{contest.name}</p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {format(new Date(contest.startTime), "MMM d, p")}
+                                                {formatISTShortDateTime(contest.startTime)} IST
                                             </p>
                                         </a>
                                     </motion.div>
@@ -195,7 +195,7 @@ export default function CalendarPage() {
                             ))}
 
                             {daysInMonth.map((day) => {
-                                const dayContests = contests.filter((contest) => isSameDay(new Date(contest.startTime), day));
+                                const dayContests = contests.filter((contest) => isSameISTDay(contest.startTime, day));
                                 const active = isSameDay(day, selectedDate);
                                 const today = isToday(day);
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { Calendar, Clock, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { formatISTDateTime } from "@/lib/istTime";
 
 interface Contest {
     _id: string;
@@ -24,7 +24,6 @@ const platformStyle = (platform: string) => {
 };
 
 const ContestCard = ({ contest }: { contest: Contest }) => {
-    const startDate = new Date(contest.startTime);
     const hours = Math.floor(contest.duration / 3600);
     const minutes = Math.floor((contest.duration % 3600) / 60);
 
@@ -59,8 +58,8 @@ const ContestCard = ({ contest }: { contest: Contest }) => {
                 <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/45 px-3 py-2.5">
                     <Calendar className="h-4 w-4 text-primary" />
                     <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Start</p>
-                        <p className="text-xs font-semibold text-foreground">{format(startDate, "EEE, MMM d, p")}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Start (IST)</p>
+                        <p className="text-xs font-semibold text-foreground">{formatISTDateTime(contest.startTime)}</p>
                     </div>
                 </div>
 
