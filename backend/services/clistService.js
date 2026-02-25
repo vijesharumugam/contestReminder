@@ -1,8 +1,8 @@
 const axios = require('axios');
 const Contest = require('../models/Contest');
 
-const CLIST_USERNAME = process.env.CLIST_USERNAME;
-const CLIST_API_KEY = process.env.CLIST_API_KEY;
+const CLIST_USERNAME = (process.env.CLIST_USERNAME || '').trim();
+const CLIST_API_KEY = (process.env.CLIST_API_KEY || '').trim();
 const BASE_URL = "https://clist.by/api/v2/";
 const DEFAULT_FETCH_LIMIT = 200;
 const DEFAULT_MAX_FETCH_BATCHES = 30;
@@ -19,6 +19,43 @@ if (!CLIST_USERNAME || !CLIST_API_KEY) {
 const getHeaders = () => ({
     "Authorization": `ApiKey ${CLIST_USERNAME}:${CLIST_API_KEY}`
 });
+
+const clistGet = async (path, params = {}) => {
+    const url = `${BASE_URL}${path}`;
+
+    try {
+        return await axios.get(url, {
+            headers: getHeaders(),
+            params
+        });
+    } catch (error) {
+        // Fallback for accounts configured with query-param auth style.
+        if (error?.response?.status === 401) {
+            return axios.get(url, {
+                params: {
+                    ...params,
+                    username: CLIST_USERNAME,
+                    api_key: CLIST_API_KEY
+                }
+            });
+        }
+        throw error;
+    }
+};
+
+const hasExplicitTimeZone = (dateTimeString) => /[zZ]|[+-]\d{2}:?\d{2}$/.test(dateTimeString);
+
+const parseContestStartTime = (rawStart) => {
+    if (rawStart instanceof Date) return rawStart;
+    if (typeof rawStart !== 'string') return new Date(rawStart);
+
+    // CLIST may return naive ISO timestamps without timezone; treat them as UTC.
+    if (rawStart.includes('T') && !hasExplicitTimeZone(rawStart)) {
+        return new Date(`${rawStart}Z`);
+    }
+
+    return new Date(rawStart);
+};
 
 const extractResourceName = (resource) => {
     if (!resource) return '';
@@ -49,12 +86,9 @@ const normalizePlatform = (resourceName) => {
 
 const getResourceIds = async (resourceNames) => {
     try {
-        const response = await axios.get(`${BASE_URL}resource/`, {
-            headers: getHeaders(),
-            params: {
-                name__in: resourceNames.join(','),
-                limit: 10
-            }
+        const response = await clistGet('resource/', {
+            name__in: resourceNames.join(','),
+            limit: 10
         });
 
         const map = {};
@@ -68,12 +102,9 @@ const getResourceIds = async (resourceNames) => {
         for (const name of missing) {
             const needle = name.replace(/^www\./, '').replace(/\.com$/, '');
             try {
-                const fallbackResp = await axios.get(`${BASE_URL}resource/`, {
-                    headers: getHeaders(),
-                    params: {
-                        name__icontains: needle,
-                        limit: 20
-                    }
+                const fallbackResp = await clistGet('resource/', {
+                    name__icontains: needle,
+                    limit: 20
                 });
 
                 const objs = fallbackResp.data?.objects || [];
@@ -93,6 +124,9 @@ const getResourceIds = async (resourceNames) => {
         }
         return map;
     } catch (error) {
+        if (error?.response?.status === 401) {
+            console.error('[CLIST] Unauthorized (401). Check CLIST_USERNAME and CLIST_API_KEY.');
+        }
         console.error("Error fetching resources:", error.message);
         return {};
     }
@@ -123,15 +157,12 @@ const fetchAndSaveContests = async () => {
         let usedBatches = 0;
 
         for (let batchIndex = 0; batchIndex < MAX_FETCH_BATCHES; batchIndex++) {
-            const response = await axios.get(`${BASE_URL}contest/`, {
-                headers: getHeaders(),
-                params: {
-                    resource_id__in: resourceIds.join(','),
-                    start__gt: now,
-                    order_by: 'start',
-                    offset: batchIndex * FETCH_BATCH_SIZE,
-                    limit: FETCH_BATCH_SIZE
-                }
+            const response = await clistGet('contest/', {
+                resource_id__in: resourceIds.join(','),
+                start__gt: now,
+                order_by: 'start',
+                offset: batchIndex * FETCH_BATCH_SIZE,
+                limit: FETCH_BATCH_SIZE
             });
 
             const batchContests = response.data.objects || [];
@@ -159,6 +190,12 @@ const fetchAndSaveContests = async () => {
         let updatedCount = 0;
 
         for (const c of contests) {
+            const parsedStartTime = parseContestStartTime(c.start);
+            if (Number.isNaN(parsedStartTime.getTime())) {
+                console.warn(`[CLIST] Skipping contest with invalid start time. id=${c.id}, start=${c.start}`);
+                continue;
+            }
+
             const resourceName = extractResourceName(c.resource) || c.host || 'Unknown';
             let platform = normalizePlatform(resourceName);
 
@@ -177,7 +214,7 @@ const fetchAndSaveContests = async () => {
                 externalId: c.id,
                 name: c.event,
                 platform: platform,
-                startTime: c.start,
+                startTime: parsedStartTime,
                 duration: c.duration,
                 url: c.href,
                 resourceId: c.resource_id || 0
